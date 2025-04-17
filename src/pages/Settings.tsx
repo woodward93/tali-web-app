@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Trash2, Search } from 'lucide-react';
+import { Upload, Trash2, Search, User, Building2 } from 'lucide-react';
 import { supabase, requireAuth } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
@@ -15,9 +15,12 @@ interface BusinessProfile {
   address: string;
 }
 
+type SettingsModule = 'profile' | 'business';
+
 export function Settings() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [activeModule, setActiveModule] = useState<SettingsModule>('profile');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -254,260 +257,311 @@ export function Settings() {
   const selectedCurrency = businessFormData.preferred_currency ? 
     CURRENCIES[businessFormData.preferred_currency as keyof typeof CURRENCIES] : null;
 
+  const modules = [
+    { id: 'profile', label: 'User Profile', icon: User },
+    { id: 'business', label: 'Business Profile', icon: Building2 },
+  ] as const;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h1>Settings</h1>
-
-      {error && (
-        <div className="form-error rounded-lg p-4">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg">
-          Settings updated successfully!
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* User Profile Section */}
-        <div className="form-card space-y-6">
-          <h2 className="text-lg font-medium text-gray-900">User Profile</h2>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label>First Name</label>
-              <input
-                type="text"
-                value={userFormData.first_name || ''}
-                onChange={e => setUserFormData(prev => ({ ...prev, first_name: e.target.value }))}
-                placeholder="Enter your first name"
-              />
-            </div>
-
-            <div>
-              <label>Last Name</label>
-              <input
-                type="text"
-                value={userFormData.last_name || ''}
-                onChange={e => setUserFormData(prev => ({ ...prev, last_name: e.target.value }))}
-                placeholder="Enter your last name"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label>Phone Number</label>
-            <input
-              type="tel"
-              value={userFormData.phone || ''}
-              onChange={e => setUserFormData(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="Enter your phone number"
-            />
-          </div>
-
-          <div>
-            <label>Email Address</label>
-            <input
-              type="email"
-              value={user?.email || ''}
-              disabled
-              className="bg-gray-50"
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              This is your sign up email address and cannot be changed.
-            </p>
-          </div>
-
-          <div>
-            <label>Address</label>
-            <textarea
-              value={userFormData.address || ''}
-              onChange={e => setUserFormData(prev => ({ ...prev, address: e.target.value }))}
-              rows={3}
-              placeholder="Enter your address"
-            />
-          </div>
-        </div>
-
-        {/* Business Profile Section */}
-        <div className="form-card space-y-6">
-          <h2 className="text-lg font-medium text-gray-900">Business Profile</h2>
-
-          <div>
-            <label>Business Name</label>
-            <input
-              type="text"
-              required
-              value={businessFormData.name}
-              onChange={e => setBusinessFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Enter your business name"
-            />
-          </div>
-
-          <div className="relative">
-            <label>
-              Country <span className="text-red-500">*</span>
-            </label>
-            <div className="search-input-wrapper">
-              <div className="search-icon">
-                <Search className="h-5 w-5" />
-              </div>
-              <input
-                type="text"
-                value={countrySearch}
-                onChange={e => {
-                  setCountrySearch(e.target.value);
-                  setShowCountryDropdown(true);
-                }}
-                onFocus={() => setShowCountryDropdown(true)}
-                onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)}
-                placeholder="Search countries..."
-              />
-            </div>
-            {showCountryDropdown && (
-              <div className="search-dropdown">
-                {filteredCountries.map(country => (
-                  <button
-                    key={country.code}
-                    type="button"
-                    onClick={() => {
-                      setBusinessFormData(prev => ({
-                        ...prev,
-                        country: country.code,
-                        preferred_currency: country.currency
-                      }));
-                      setCountrySearch(country.name);
-                      setShowCountryDropdown(false);
-                      
-                      const currency = CURRENCIES[country.currency as keyof typeof CURRENCIES];
-                      if (currency) {
-                        setCurrencySearch(`${country.currency} - ${currency[1]}`);
-                      }
-                    }}
-                    className="search-dropdown-item"
-                  >
-                    {country.name}
-                  </button>
-                ))}
-              </div>
-            )}
-            {selectedCountry && (
-              <div className="selected-value">
-                Selected: {selectedCountry.name}
-              </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <label>
-              Preferred Currency <span className="text-red-500">*</span>
-            </label>
-            <div className="search-input-wrapper">
-              <div className="search-icon">
-                <Search className="h-5 w-5" />
-              </div>
-              <input
-                type="text"
-                value={currencySearch}
-                onChange={e => {
-                  setCurrencySearch(e.target.value);
-                  setShowCurrencyDropdown(true);
-                }}
-                onFocus={() => setShowCurrencyDropdown(true)}
-                onBlur={() => setTimeout(() => setShowCurrencyDropdown(false), 200)}
-                placeholder="Search currencies..."
-              />
-            </div>
-            {showCurrencyDropdown && (
-              <div className="search-dropdown">
-                {filteredCurrencies.map(([code, [_, name]]) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => {
-                      setBusinessFormData(prev => ({ ...prev, preferred_currency: code }));
-                      setCurrencySearch(`${code} - ${name}`);
-                      setShowCurrencyDropdown(false);
-                    }}
-                    className="search-dropdown-item"
-                  >
-                    {code} - {name}
-                  </button>
-                ))}
-              </div>
-            )}
-            {selectedCurrency && (
-              <div className="selected-value">
-                Selected: {businessFormData.preferred_currency} - {selectedCurrency[1]}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label>Business Logo</label>
-            <div className="mt-1 flex items-center gap-4">
-              {businessFormData.logo_url && (
-                <div className="relative group">
-                  <img
-                    src={businessFormData.logo_url}
-                    alt="Business logo"
-                    className="h-16 w-16 rounded-full object-cover bg-gray-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleDeleteLogo}
-                    disabled={loading}
-                    className="absolute -top-2 -right-2 p-1 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              <div className="flex flex-col gap-2">
-                <label 
-                  className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  {...(loading ? { disabled: true } : {})}
+    <div className="max-w-6xl mx-auto">
+      <div className="flex gap-6">
+        {/* Sidebar Navigation */}
+        <div className="w-64 shrink-0">
+          <div className="bg-white rounded-lg shadow-sm p-4 sticky top-24">
+            <h2 className="text-lg font-semibold text-gray-900 px-2 mb-4">Settings</h2>
+            <nav className="space-y-1">
+              {modules.map(module => (
+                <button
+                  key={module.id}
+                  onClick={() => setActiveModule(module.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    activeModule === module.id
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
                 >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {loading ? 'Uploading...' : 'Upload Logo'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    disabled={loading}
-                  />
-                </label>
-                <p className="text-xs text-gray-500">
-                  Max file size: 3MB. Supported formats: PNG, JPG, GIF
-                </p>
+                  <module.icon className="h-5 w-5" />
+                  {module.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Alert Messages */}
+          <div className="space-y-4 mb-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+                {error}
               </div>
+            )}
+
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg">
+                Settings updated successfully!
+              </div>
+            )}
+          </div>
+
+          {/* Module Content */}
+          <div className="bg-white rounded-lg shadow-sm">
+            {/* Module Header */}
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-medium text-gray-900">
+                {activeModule === 'profile' ? 'User Profile' : 'Business Profile'}
+              </h2>
+            </div>
+
+            {/* Module Content */}
+            <div className="p-6">
+              {activeModule === 'profile' ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label>First Name</label>
+                      <input
+                        type="text"
+                        value={userFormData.first_name || ''}
+                        onChange={e => setUserFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                        placeholder="Enter your first name"
+                      />
+                    </div>
+
+                    <div>
+                      <label>Last Name</label>
+                      <input
+                        type="text"
+                        value={userFormData.last_name || ''}
+                        onChange={e => setUserFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                        placeholder="Enter your last name"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Phone Number</label>
+                    <input
+                      type="tel"
+                      value={userFormData.phone || ''}
+                      onChange={e => setUserFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+
+                  <div>
+                    <label>Email Address</label>
+                    <input
+                      type="email"
+                      value={user?.email || ''}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                    <p className="mt-2 text-sm text-gray-500">
+                      This is your sign up email address and cannot be changed.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label>Address</label>
+                    <textarea
+                      value={userFormData.address || ''}
+                      onChange={e => setUserFormData(prev => ({ ...prev, address: e.target.value }))}
+                      rows={3}
+                      placeholder="Enter your address"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="primary"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label>Business Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={businessFormData.name}
+                      onChange={e => setBusinessFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter your business name"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <label>
+                      Country <span className="text-red-500">*</span>
+                    </label>
+                    <div className="search-input-wrapper">
+                      <div className="search-icon">
+                        <Search className="h-5 w-5" />
+                      </div>
+                      <input
+                        type="text"
+                        value={countrySearch}
+                        onChange={e => {
+                          setCountrySearch(e.target.value);
+                          setShowCountryDropdown(true);
+                        }}
+                        onFocus={() => setShowCountryDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)}
+                        placeholder="Search countries..."
+                      />
+                    </div>
+                    {showCountryDropdown && (
+                      <div className="search-dropdown">
+                        {filteredCountries.map(country => (
+                          <button
+                            key={country.code}
+                            type="button"
+                            onClick={() => {
+                              setBusinessFormData(prev => ({
+                                ...prev,
+                                country: country.code,
+                                preferred_currency: country.currency
+                              }));
+                              setCountrySearch(country.name);
+                              setShowCountryDropdown(false);
+                              
+                              const currency = CURRENCIES[country.currency as keyof typeof CURRENCIES];
+                              if (currency) {
+                                setCurrencySearch(`${country.currency} - ${currency[1]}`);
+                              }
+                            }}
+                            className="search-dropdown-item"
+                          >
+                            {country.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedCountry && (
+                      <div className="selected-value">
+                        Selected: {selectedCountry.name}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <label>
+                      Preferred Currency <span className="text-red-500">*</span>
+                    </label>
+                    <div className="search-input-wrapper">
+                      <div className="search-icon">
+                        <Search className="h-5 w-5" />
+                      </div>
+                      <input
+                        type="text"
+                        value={currencySearch}
+                        onChange={e => {
+                          setCurrencySearch(e.target.value);
+                          setShowCurrencyDropdown(true);
+                        }}
+                        onFocus={() => setShowCurrencyDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowCurrencyDropdown(false), 200)}
+                        placeholder="Search currencies..."
+                      />
+                    </div>
+                    {showCurrencyDropdown && (
+                      <div className="search-dropdown">
+                        {filteredCurrencies.map(([code, [_, name]]) => (
+                          <button
+                            key={code}
+                            type="button"
+                            onClick={() => {
+                              setBusinessFormData(prev => ({ ...prev, preferred_currency: code }));
+                              setCurrencySearch(`${code} - ${name}`);
+                              setShowCurrencyDropdown(false);
+                            }}
+                            className="search-dropdown-item"
+                          >
+                            {code} - {name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedCurrency && (
+                      <div className="selected-value">
+                        Selected: {businessFormData.preferred_currency} - {selectedCurrency[1]}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label>Business Logo</label>
+                    <div className="mt-1 flex items-center gap-4">
+                      {businessFormData.logo_url && (
+                        <div className="relative group">
+                          <img
+                            src={businessFormData.logo_url}
+                            alt="Business logo"
+                            className="h-16 w-16 rounded-full object-cover bg-gray-100"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleDeleteLogo}
+                            disabled={loading}
+                            className="absolute -top-2 -right-2 p-1 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <label 
+                          className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          {...(loading ? { disabled: true } : {})}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          {loading ? 'Uploading...' : 'Upload Logo'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            disabled={loading}
+                          />
+                        </label>
+                        <p className="text-xs text-gray-500">
+                          Max file size: 3MB. Supported formats: PNG, JPG, GIF
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Business Address</label>
+                    <textarea
+                      value={businessFormData.address}
+                      onChange={e => setBusinessFormData(prev => ({ ...prev, address: e.target.value }))}
+                      rows={3}
+                      placeholder="Enter your business address"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="primary"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
-
-          <div>
-            <label>Business Address</label>
-            <textarea
-              value={businessFormData.address}
-              onChange={e => setBusinessFormData(prev => ({ ...prev, address: e.target.value }))}
-              rows={3}
-              placeholder="Enter your business address"
-            />
-          </div>
         </div>
-
-        <div className="form-footer">
-          <button
-            type="submit"
-            disabled={loading}
-            className="primary"
-          >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }
