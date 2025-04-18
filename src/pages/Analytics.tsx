@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { formatCurrency } from '../lib/format';
+import { AIInsights } from '../components/AIInsights';
 import type { Transaction } from '../types';
 
 type DateRange = '1M' | '3M' | '6M' | 'YTD' | 'ALL';
@@ -277,20 +278,27 @@ export function Analytics() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Title>Analytics</Title>
-        <div className="flex gap-2">
-          {(['1M', '3M', '6M', 'YTD', 'ALL'] as DateRange[]).map(range => (
-            <button
-              key={range}
-              onClick={() => setDateRange(range)}
-              className={`px-3 py-1 text-sm rounded-md ${
-                dateRange === range
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {range}
-            </button>
-          ))}
+        <div className="flex items-center gap-4">
+          <AIInsights
+            metrics={metrics}
+            topProducts={topProducts}
+            topCustomers={topCustomers}
+          />
+          <div className="flex gap-2">
+            {(['1M', '3M', '6M', 'YTD', 'ALL'] as DateRange[]).map(range => (
+              <button
+                key={range}
+                onClick={() => setDateRange(range)}
+                className={`px-3 py-1 text-sm rounded-md ${
+                  dateRange === range
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
