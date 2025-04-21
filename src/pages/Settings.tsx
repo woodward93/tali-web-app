@@ -21,13 +21,16 @@ export function Settings() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeModule, setActiveModule] = useState<SettingsModule>('profile');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [logoLoading, setLogoLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
   const [currencySearch, setCurrencySearch] = useState('');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [businessFormData, setBusinessFormData] = useState<BusinessProfile>({
     name: '',
     country: '',
@@ -54,38 +57,7 @@ export function Settings() {
       setLoading(true);
       await requireAuth();
 
-      // Load business profile
-      const { data: businesses, error: businessError } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('user_id', user?.id);
-
-      if (businessError) throw businessError;
-      
-      if (businesses && businesses.length > 0) {
-        const data = businesses[0];
-        setBusinessFormData(data);
-        if (data.country) {
-          const country = COUNTRIES.find(c => c.code === data.country);
-          if (country) {
-            setCountrySearch(country.name);
-            if (data.preferred_currency === country.currency) {
-              const currency = CURRENCIES[country.currency as keyof typeof CURRENCIES];
-              if (currency) {
-                setCurrencySearch(`${country.currency} - ${currency[1]}`);
-              }
-            }
-          }
-        }
-        if (data.preferred_currency) {
-          const currency = CURRENCIES[data.preferred_currency as keyof typeof CURRENCIES];
-          if (currency) {
-            setCurrencySearch(`${data.preferred_currency} - ${currency[1]}`);
-          }
-        }
-      }
-
-      // Load user profile
+      // Load user profile first
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
@@ -94,21 +66,88 @@ export function Settings() {
 
       if (profileError && profileError.code !== 'PGRST116') throw profileError;
       
-      if (profile) {
-        setUserFormData(profile);
-      } else {
-        // Set email from auth user
+      if (!profile) {
+        setIsFirstTimeUser(true);
         setUserFormData(prev => ({ ...prev, email: user?.email }));
+      } else {
+        setUserFormData(profile);
+        
+        // Load business profile only if user profile exists
+        const { data: businesses } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('user_id', user?.id);
+        
+        if (businesses && businesses.length > 0) {
+          const data = businesses[0];
+          setBusinessFormData(data);
+          if (data.country) {
+            const country = COUNTRIES.find(c => c.code === data.country);
+            if (country) {
+              setCountrySearch(country.name);
+              if (data.preferred_currency === country.currency) {
+                const currency = CURRENCIES[country.currency as keyof typeof CURRENCIES];
+                if (currency) {
+                  setCurrencySearch(`${country.currency} - ${currency[1]}`);
+                }
+              }
+            }
+          }
+          if (data.preferred_currency) {
+            const currency = CURRENCIES[data.preferred_currency as keyof typeof CURRENCIES];
+            if (currency) {
+              setCurrencySearch(`${data.preferred_currency} - ${currency[1]}`);
+            }
+          }
+        } else {
+          setActiveModule('business');
+        }
       }
     } catch (err) {
       console.error('Error loading profiles:', err);
       toast.error('Failed to load profiles');
     } finally {
       setLoading(false);
+      setProfileLoaded(true);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleUserProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+
+    try {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: user?.id,
+          ...userFormData,
+          email: user?.email,
+        })
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+      
+      setSuccess(true);
+      toast.success('User profile updated successfully');
+
+      if (isFirstTimeUser) {
+        setIsFirstTimeUser(false);
+        setActiveModule('business');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBusinessProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -122,7 +161,6 @@ export function Settings() {
     }
 
     try {
-      // Update business profile
       const { error: businessError } = await supabase
         .from('businesses')
         .upsert({
@@ -133,22 +171,9 @@ export function Settings() {
         .single();
 
       if (businessError) throw businessError;
-
-      // Update user profile
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .upsert({
-          user_id: user?.id,
-          ...userFormData,
-          email: user?.email, // Ensure we always use the auth email as a string
-        })
-        .select()
-        .single();
-
-      if (profileError) throw profileError;
       
       setSuccess(true);
-      toast.success('Settings updated successfully');
+      toast.success('Business profile updated successfully');
       navigate('/');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
@@ -174,7 +199,7 @@ export function Settings() {
     }
 
     try {
-      setLoading(true);
+      setLogoLoading(true);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${user?.id}/${fileName}`;
@@ -207,7 +232,7 @@ export function Settings() {
       console.error('Error uploading logo:', err);
       toast.error('Failed to upload logo');
     } finally {
-      setLoading(false);
+      setLogoLoading(false);
     }
   };
 
@@ -215,7 +240,7 @@ export function Settings() {
     if (!businessFormData.logo_url) return;
 
     try {
-      setLoading(true);
+      setLogoLoading(true);
       const fileName = businessFormData.logo_url.split('/').pop();
       
       if (fileName) {
@@ -239,7 +264,7 @@ export function Settings() {
       console.error('Error deleting logo:', err);
       toast.error('Failed to delete logo');
     } finally {
-      setLoading(false);
+      setLogoLoading(false);
     }
   };
 
@@ -261,6 +286,94 @@ export function Settings() {
     { id: 'profile', label: 'User Profile', icon: User },
     { id: 'business', label: 'Business Profile', icon: Building2 },
   ] as const;
+
+  if (!profileLoaded || (loading && !isFirstTimeUser)) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  // For first-time users, show only the profile form
+  if (isFirstTimeUser) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="px-6 py-4 border-b">
+            <h2 className="text-lg font-medium text-gray-900">Welcome! Let's set up your profile</h2>
+          </div>
+          <div className="p-6">
+            <form onSubmit={handleUserProfileSubmit} className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label>First Name</label>
+                  <input
+                    type="text"
+                    value={userFormData.first_name || ''}
+                    onChange={e => setUserFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                    placeholder="Enter your first name"
+                  />
+                </div>
+                <div>
+                  <label>Last Name</label>
+                  <input
+                    type="text"
+                    value={userFormData.last_name || ''}
+                    onChange={e => setUserFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                    placeholder="Enter your last name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label>Phone Number</label>
+                <input
+                  type="tel"
+                  value={userFormData.phone || ''}
+                  onChange={e => setUserFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Enter your phone number"
+                />
+              </div>
+
+              <div>
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="mt-2 text-sm text-gray-500">
+                  This is your sign up email address and cannot be changed.
+                </p>
+              </div>
+
+              <div>
+                <label>Address</label>
+                <textarea
+                  value={userFormData.address || ''}
+                  onChange={e => setUserFormData(prev => ({ ...prev, address: e.target.value }))}
+                  rows={3}
+                  placeholder="Enter your address"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="primary"
+                >
+                  {loading ? 'Saving...' : 'Continue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -317,7 +430,7 @@ export function Settings() {
             {/* Module Content */}
             <div className="p-6">
               {activeModule === 'profile' ? (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleUserProfileSubmit} className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label>First Name</label>
@@ -384,7 +497,7 @@ export function Settings() {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleBusinessProfileSubmit} className="space-y-6">
                   <div>
                     <label>Business Name</label>
                     <input
@@ -508,7 +621,7 @@ export function Settings() {
                           <button
                             type="button"
                             onClick={handleDeleteLogo}
-                            disabled={loading}
+                            disabled={logoLoading}
                             className="absolute -top-2 -right-2 p-1 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -518,16 +631,16 @@ export function Settings() {
                       <div className="flex flex-col gap-2">
                         <label 
                           className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          {...(loading ? { disabled: true } : {})}
+                          {...(logoLoading ? { disabled: true } : {})}
                         >
                           <Upload className="h-4 w-4 mr-2" />
-                          {loading ? 'Uploading...' : 'Upload Logo'}
+                          {logoLoading ? 'Uploading...' : 'Upload Logo'}
                           <input
                             type="file"
                             accept="image/*"
                             onChange={handleFileUpload}
                             className="hidden"
-                            disabled={loading}
+                            disabled={logoLoading}
                           />
                         </label>
                         <p className="text-xs text-gray-500">
