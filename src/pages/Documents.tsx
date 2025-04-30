@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Trash2, X, Search, Loader2 } from 'lucide-react';
+import { Plus, Send, Trash2, X, Search, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -44,6 +44,33 @@ interface TransactionSelectorProps {
   onSelect: (transaction: Transaction) => void;
   onClose: () => void;
 }
+
+const FILTER_OPTIONS = [
+  {
+    key: 'type',
+    label: 'Type',
+    type: 'select' as const,
+    options: [
+      { value: 'receipt', label: 'Receipt' },
+      { value: 'invoice', label: 'Invoice' }
+    ]
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select' as const,
+    options: [
+      { value: 'draft', label: 'Draft' },
+      { value: 'sent', label: 'Sent' },
+      { value: 'viewed', label: 'Viewed' }
+    ]
+  },
+  {
+    key: 'date_range',
+    label: 'Date Range',
+    type: 'dateRange' as const
+  }
+];
 
 function TransactionSelector({ onSelect, onClose }: TransactionSelectorProps) {
   const [loading, setLoading] = useState(true);
@@ -163,33 +190,6 @@ function TransactionSelector({ onSelect, onClose }: TransactionSelectorProps) {
     </div>
   );
 }
-
-const FILTER_OPTIONS = [
-  {
-    key: 'type',
-    label: 'Type',
-    type: 'select' as const,
-    options: [
-      { value: 'receipt', label: 'Receipt' },
-      { value: 'invoice', label: 'Invoice' }
-    ]
-  },
-  {
-    key: 'status',
-    label: 'Status',
-    type: 'select' as const,
-    options: [
-      { value: 'draft', label: 'Draft' },
-      { value: 'sent', label: 'Sent' },
-      { value: 'viewed', label: 'Viewed' }
-    ]
-  },
-  {
-    key: 'date_range',
-    label: 'Date Range',
-    type: 'dateRange' as const
-  }
-];
 
 interface DocumentPreviewProps {
   transaction: Transaction;
@@ -593,13 +593,13 @@ export function Documents() {
           <button
             onClick={() => handleView(doc)}
             className="text-gray-600 hover:text-gray-900"
-            title="View PDF"
+            title="Send PDF"
             disabled={generatingPDF === doc.id}
           >
             {generatingPDF === doc.id ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Send className="h-4 w-4" />
             )}
           </button>
           <button
