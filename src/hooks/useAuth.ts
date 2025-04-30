@@ -64,6 +64,30 @@ export function useAuth() {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Reset password error:', err);
+      throw err;
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Update password error:', err);
+      throw err;
+    }
+  };
+
   const signOut = async () => {
     try {
       // First clear any stored session data
@@ -100,5 +124,7 @@ export function useAuth() {
     signIn,
     signUp,
     signOut,
+    resetPassword,
+    updatePassword
   };
 }

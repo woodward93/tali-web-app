@@ -8,6 +8,8 @@ import { Documents } from './pages/Documents';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
 import { Auth } from './pages/Auth';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { useAuth } from './hooks/useAuth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -28,6 +30,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route
           path="/"
           element={
