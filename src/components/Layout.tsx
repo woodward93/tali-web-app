@@ -170,30 +170,34 @@ export function Layout() {
             </button>
           </div>
           <BusinessProfile />
-          <nav className="flex flex-col gap-1 p-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg ${
-                  location.pathname === item.href
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+          <div className="flex flex-col h-[calc(100vh-180px)]">
+            <nav className="flex-1 p-4">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-lg ${
+                    location.pathname === item.href
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+            <div className="p-4 border-t mt-auto">
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                <item.icon className="h-5 w-5" />
-                {item.name}
-              </Link>
-            ))}
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-gray-700 hover:bg-gray-50 mt-auto"
-            >
-              <LogOut className="h-5 w-5" />
-              Sign Out
-            </button>
-          </nav>
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

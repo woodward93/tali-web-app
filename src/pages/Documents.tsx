@@ -524,7 +524,7 @@ export function Documents() {
     <div className="space-y-4 sm:space-y-6">
       {/* Mobile Header */}
       <div className="sm:hidden px-4">
-        <h1 className="text-2xl font-bold mb-4">Documents</h1>
+        <h1 className="text-2xl font-bold mb-4">Receipts & Invoices</h1>
         <div className="space-y-4">
           <div className="relative">
             <input
@@ -539,7 +539,7 @@ export function Documents() {
             onClick={() => setShowTransactionSelector(true)}
             className="w-full bg-primary-600 text-white rounded-lg py-3 font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
-            + New Document
+            + New Receipt/Invoice
           </button>
           <button
             onClick={() => setShowFilters(true)}
@@ -553,13 +553,13 @@ export function Documents() {
 
       {/* Desktop Header */}
       <div className="hidden sm:flex items-center justify-between">
-        <h1>Documents</h1>
+        <h1>Receipts & Invoices</h1>
         <button
           onClick={() => setShowTransactionSelector(true)}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-500 hover:bg-primary-600"
         >
           <Plus className="h-4 w-4 mr-2" />
-          New Document
+          New Receipt/Invoice
         </button>
       </div>
 
