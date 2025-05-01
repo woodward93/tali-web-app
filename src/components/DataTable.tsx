@@ -41,6 +41,68 @@ export function DataTable<T extends Record<string, any>>({
   const startItem = (page - 1) * perPage + 1;
   const endItem = Math.min(page * perPage, totalItems);
 
+  const PaginationControls = () => (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="text-sm text-gray-700">
+        Showing {startItem} to {endItem} of {totalItems} entries
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page === 1}
+          className="p-2 rounded-md border border-gray-300 disabled:opacity-50"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+            .map((p, i, arr) => (
+              <React.Fragment key={p}>
+                {i > 0 && arr[i - 1] !== p - 1 && (
+                  <span className="px-2">...</span>
+                )}
+                <button
+                  onClick={() => onPageChange(p)}
+                  className={`px-3 py-1 rounded-md ${
+                    p === page
+                      ? 'bg-primary-600 text-white'
+                      : 'border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              </React.Fragment>
+            ))}
+        </div>
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={page === totalPages}
+          className="p-2 rounded-md border border-gray-300 disabled:opacity-50"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+
+  const EntriesPerPage = () => (
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-gray-700">Show</span>
+      <select
+        value={perPage}
+        onChange={(e) => onPerPageChange(Number(e.target.value))}
+        className="rounded-md border-gray-300 py-1 pl-2 pr-8 text-sm focus:border-primary-500 focus:ring-primary-500"
+      >
+        <option value={10}>10</option>
+        <option value={20}>20</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+      </select>
+      <span className="text-sm text-gray-700">entries</span>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -58,20 +120,7 @@ export function DataTable<T extends Record<string, any>>({
             />
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-700">Show</span>
-          <select
-            value={perPage}
-            onChange={(e) => onPerPageChange(Number(e.target.value))}
-            className="rounded-md border-gray-300 py-1 pl-2 pr-8 text-sm focus:border-primary-500 focus:ring-primary-500"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-          <span className="text-sm text-gray-700">entries</span>
-        </div>
+        <EntriesPerPage />
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -127,48 +176,7 @@ export function DataTable<T extends Record<string, any>>({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="text-sm text-gray-700">
-          Showing {startItem} to {endItem} of {totalItems} entries
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(page - 1)}
-            disabled={page === 1}
-            className="p-2 rounded-md border border-gray-300 disabled:opacity-50"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-              .map((p, i, arr) => (
-                <React.Fragment key={p}>
-                  {i > 0 && arr[i - 1] !== p - 1 && (
-                    <span className="px-2">...</span>
-                  )}
-                  <button
-                    onClick={() => onPageChange(p)}
-                    className={`px-3 py-1 rounded-md ${
-                      p === page
-                        ? 'bg-primary-600 text-white'
-                        : 'border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                </React.Fragment>
-              ))}
-          </div>
-          <button
-            onClick={() => onPageChange(page + 1)}
-            disabled={page === totalPages}
-            className="p-2 rounded-md border border-gray-300 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      <PaginationControls />
     </div>
   );
 }

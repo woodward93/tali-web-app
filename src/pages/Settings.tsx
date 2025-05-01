@@ -57,7 +57,6 @@ export function Settings() {
       setLoading(true);
       await requireAuth();
 
-      // Load user profile first
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
@@ -72,7 +71,6 @@ export function Settings() {
       } else {
         setUserFormData(profile);
         
-        // Load business profile only if user profile exists
         const { data: businesses } = await supabase
           .from('businesses')
           .select('*')
@@ -282,11 +280,6 @@ export function Settings() {
   const selectedCurrency = businessFormData.preferred_currency ? 
     CURRENCIES[businessFormData.preferred_currency as keyof typeof CURRENCIES] : null;
 
-  const modules = [
-    { id: 'profile', label: 'User Profile', icon: User },
-    { id: 'business', label: 'Business Profile', icon: Building2 },
-  ] as const;
-
   if (!profileLoaded || (loading && !isFirstTimeUser)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -298,51 +291,54 @@ export function Settings() {
   // For first-time users, show only the profile form
   if (isFirstTimeUser) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-sm">
-          <div className="px-6 py-4 border-b">
+          <div className="px-4 py-4 sm:px-6 border-b">
             <h2 className="text-lg font-medium text-gray-900">Welcome! Let's set up your profile</h2>
           </div>
-          <div className="p-6">
-            <form onSubmit={handleUserProfileSubmit} className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+          <div className="p-4 sm:p-6">
+            <form onSubmit={handleUserProfileSubmit} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label>First Name</label>
+                  <label className="block text-sm font-medium text-gray-700">First Name</label>
                   <input
                     type="text"
                     value={userFormData.first_name || ''}
                     onChange={e => setUserFormData(prev => ({ ...prev, first_name: e.target.value }))}
                     placeholder="Enter your first name"
+                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
                 <div>
-                  <label>Last Name</label>
+                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
                   <input
                     type="text"
                     value={userFormData.last_name || ''}
                     onChange={e => setUserFormData(prev => ({ ...prev, last_name: e.target.value }))}
                     placeholder="Enter your last name"
+                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label>Phone Number</label>
+                <label className="block text-sm font-medium text-gray-700">Phone Number</label>
                 <input
                   type="tel"
                   value={userFormData.phone || ''}
                   onChange={e => setUserFormData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="Enter your phone number"
+                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 />
               </div>
 
               <div>
-                <label>Email Address</label>
+                <label className="block text-sm font-medium text-gray-700">Email Address</label>
                 <input
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="bg-gray-50"
+                  className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm"
                 />
                 <p className="mt-2 text-sm text-gray-500">
                   This is your sign up email address and cannot be changed.
@@ -350,12 +346,13 @@ export function Settings() {
               </div>
 
               <div>
-                <label>Address</label>
+                <label className="block text-sm font-medium text-gray-700">Address</label>
                 <textarea
                   value={userFormData.address || ''}
                   onChange={e => setUserFormData(prev => ({ ...prev, address: e.target.value }))}
                   rows={3}
                   placeholder="Enter your address"
+                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 />
               </div>
 
@@ -363,7 +360,7 @@ export function Settings() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="primary"
+                  className="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
                 >
                   {loading ? 'Saving...' : 'Continue'}
                 </button>
@@ -376,27 +373,63 @@ export function Settings() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Mobile Tabs */}
+      <div className="sm:hidden mb-6">
+        <div className="bg-gray-100 rounded-lg p-1">
+          <div className="grid grid-cols-2 gap-1">
+            <button
+              onClick={() => setActiveModule('profile')}
+              className={`py-2 text-sm font-medium rounded-md ${
+                activeModule === 'profile'
+                  ? 'bg-white text-primary-600 shadow'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              User Profile
+            </button>
+            <button
+              onClick={() => setActiveModule('business')}
+              className={`py-2 text-sm font-medium rounded-md ${
+                activeModule === 'business'
+                  ? 'bg-white text-primary-600 shadow'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Business Profile
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="flex gap-6">
-        {/* Sidebar Navigation */}
-        <div className="w-64 shrink-0">
+        {/* Desktop Sidebar Navigation */}
+        <div className="hidden sm:block w-64 shrink-0">
           <div className="bg-white rounded-lg shadow-sm p-4 sticky top-24">
             <h2 className="text-lg font-semibold text-gray-900 px-2 mb-4">Settings</h2>
             <nav className="space-y-1">
-              {modules.map(module => (
-                <button
-                  key={module.id}
-                  onClick={() => setActiveModule(module.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                    activeModule === module.id
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <module.icon className="h-5 w-5" />
-                  {module.label}
-                </button>
-              ))}
+              <button
+                onClick={() => setActiveModule('profile')}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  activeModule === 'profile'
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <User className="h-5 w-5" />
+                User Profile
+              </button>
+              <button
+                onClick={() => setActiveModule('business')}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  activeModule === 'business'
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Building2 className="h-5 w-5" />
+                Business Profile
+              </button>
             </nav>
           </div>
         </div>
@@ -421,55 +454,58 @@ export function Settings() {
           {/* Module Content */}
           <div className="bg-white rounded-lg shadow-sm">
             {/* Module Header */}
-            <div className="px-6 py-4 border-b">
+            <div className="px-4 py-4 sm:px-6 border-b">
               <h2 className="text-lg font-medium text-gray-900">
                 {activeModule === 'profile' ? 'User Profile' : 'Business Profile'}
               </h2>
             </div>
 
             {/* Module Content */}
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {activeModule === 'profile' ? (
-                <form onSubmit={handleUserProfileSubmit} className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                <form onSubmit={handleUserProfileSubmit} className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
-                      <label>First Name</label>
+                      <label className="block text-sm font-medium text-gray-700">First Name</label>
                       <input
                         type="text"
                         value={userFormData.first_name || ''}
                         onChange={e => setUserFormData(prev => ({ ...prev, first_name: e.target.value }))}
                         placeholder="Enter your first name"
+                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                       />
                     </div>
 
                     <div>
-                      <label>Last Name</label>
+                      <label className="block text-sm font-medium text-gray-700">Last Name</label>
                       <input
                         type="text"
                         value={userFormData.last_name || ''}
                         onChange={e => setUserFormData(prev => ({ ...prev, last_name: e.target.value }))}
                         placeholder="Enter your last name"
+                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label>Phone Number</label>
+                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
                     <input
                       type="tel"
                       value={userFormData.phone || ''}
                       onChange={e => setUserFormData(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder="Enter your phone number"
+                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
 
                   <div>
-                    <label>Email Address</label>
+                    <label className="block text-sm font-medium text-gray-700">Email Address</label>
                     <input
                       type="email"
                       value={user?.email || ''}
                       disabled
-                      className="bg-gray-50"
+                      className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm"
                     />
                     <p className="mt-2 text-sm text-gray-500">
                       This is your sign up email address and cannot be changed.
@@ -477,12 +513,13 @@ export function Settings() {
                   </div>
 
                   <div>
-                    <label>Address</label>
+                    <label className="block text-sm font-medium text-gray-700">Address</label>
                     <textarea
                       value={userFormData.address || ''}
                       onChange={e => setUserFormData(prev => ({ ...prev, address: e.target.value }))}
                       rows={3}
                       placeholder="Enter your address"
+                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
 
@@ -490,27 +527,28 @@ export function Settings() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="primary"
+                      className="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
                     >
                       {loading ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleBusinessProfileSubmit} className="space-y-6">
+                <form onSubmit={handleBusinessProfileSubmit} className="space-y-4 sm:space-y-6">
                   <div>
-                    <label>Business Name</label>
+                    <label className="block text-sm font-medium text-gray-700">Business Name</label>
                     <input
                       type="text"
                       required
                       value={businessFormData.name}
                       onChange={e => setBusinessFormData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Enter your business name"
+                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
 
                   <div className="relative">
-                    <label>
+                    <label className="block text-sm font-medium text-gray-700">
                       Country <span className="text-red-500">*</span>
                     </label>
                     <div className="search-input-wrapper">
@@ -527,10 +565,11 @@ export function Settings() {
                         onFocus={() => setShowCountryDropdown(true)}
                         onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)}
                         placeholder="Search countries..."
+                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
                       />
                     </div>
                     {showCountryDropdown && (
-                      <div className="search-dropdown">
+                      <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto">
                         {filteredCountries.map(country => (
                           <button
                             key={country.code}
@@ -549,7 +588,7 @@ export function Settings() {
                                 setCurrencySearch(`${country.currency} - ${currency[1]}`);
                               }
                             }}
-                            className="search-dropdown-item"
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                           >
                             {country.name}
                           </button>
@@ -557,14 +596,14 @@ export function Settings() {
                       </div>
                     )}
                     {selectedCountry && (
-                      <div className="selected-value">
+                      <div className="mt-2 text-sm text-gray-500">
                         Selected: {selectedCountry.name}
                       </div>
                     )}
                   </div>
 
                   <div className="relative">
-                    <label>
+                    <label className="block text-sm font-medium text-gray-700">
                       Preferred Currency <span className="text-red-500">*</span>
                     </label>
                     <div className="search-input-wrapper">
@@ -581,10 +620,11 @@ export function Settings() {
                         onFocus={() => setShowCurrencyDropdown(true)}
                         onBlur={() => setTimeout(() => setShowCurrencyDropdown(false), 200)}
                         placeholder="Search currencies..."
+                        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10"
                       />
                     </div>
                     {showCurrencyDropdown && (
-                      <div className="search-dropdown">
+                      <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto">
                         {filteredCurrencies.map(([code, [_, name]]) => (
                           <button
                             key={code}
@@ -594,7 +634,7 @@ export function Settings() {
                               setCurrencySearch(`${code} - ${name}`);
                               setShowCurrencyDropdown(false);
                             }}
-                            className="search-dropdown-item"
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                           >
                             {code} - {name}
                           </button>
@@ -602,14 +642,14 @@ export function Settings() {
                       </div>
                     )}
                     {selectedCurrency && (
-                      <div className="selected-value">
+                      <div className="mt-2 text-sm text-gray-500">
                         Selected: {businessFormData.preferred_currency} - {selectedCurrency[1]}
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label>Business Logo</label>
+                    <label className="block text-sm font-medium text-gray-700">Business Logo</label>
                     <div className="mt-1 flex items-center gap-4">
                       {businessFormData.logo_url && (
                         <div className="relative group">
@@ -631,7 +671,6 @@ export function Settings() {
                       <div className="flex flex-col gap-2">
                         <label 
                           className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          {...(logoLoading ? { disabled: true } : {})}
                         >
                           <Upload className="h-4 w-4 mr-2" />
                           {logoLoading ? 'Uploading...' : 'Upload Logo'}
@@ -651,12 +690,13 @@ export function Settings() {
                   </div>
 
                   <div>
-                    <label>Business Address</label>
+                    <label className="block text-sm font-medium text-gray-700">Business Address</label>
                     <textarea
                       value={businessFormData.address}
                       onChange={e => setBusinessFormData(prev => ({ ...prev, address: e.target.value }))}
                       rows={3}
                       placeholder="Enter your business address"
+                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
 
@@ -664,7 +704,7 @@ export function Settings() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="primary"
+                      className="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
                     >
                       {loading ? 'Saving...' : 'Save Changes'}
                     </button>

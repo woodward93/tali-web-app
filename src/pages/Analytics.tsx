@@ -275,21 +275,21 @@ export function Analytics() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Title>Analytics</Title>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <AIInsights
             metrics={metrics}
             topProducts={topProducts}
             topCustomers={topCustomers}
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
             {(['1M', '3M', '6M', 'YTD', 'ALL'] as DateRange[]).map(range => (
               <button
                 key={range}
                 onClick={() => setDateRange(range)}
-                className={`px-3 py-1 text-sm rounded-md ${
+                className={`px-3 py-1 text-sm rounded-md whitespace-nowrap ${
                   dateRange === range
                     ? 'bg-primary-500 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -303,15 +303,15 @@ export function Analytics() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6 bg-gradient-to-br from-rose-50 to-rose-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-rose-50 to-rose-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-rose-500 bg-opacity-10 rounded-full">
               <DollarSign className="h-6 w-6 text-rose-500" />
             </div>
             <div>
               <Text className="text-sm font-medium text-rose-600">Total Revenue</Text>
-              <Text className="text-2xl font-bold text-rose-900">
+              <Text className="text-xl sm:text-2xl font-bold text-rose-900">
                 {formatCurrency(metrics.totalRevenue)} {businessProfile?.preferred_currency}
               </Text>
             </div>
@@ -321,14 +321,14 @@ export function Analytics() {
           </Text>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-amber-50 to-amber-100">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-50 to-amber-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-amber-500 bg-opacity-10 rounded-full">
               <Wallet className="h-6 w-6 text-amber-500" />
             </div>
             <div>
               <Text className="text-sm font-medium text-amber-600">Total Profit</Text>
-              <Text className="text-2xl font-bold text-amber-900">
+              <Text className="text-xl sm:text-2xl font-bold text-amber-900">
                 {formatCurrency(metrics.totalProfit)} {businessProfile?.preferred_currency}
               </Text>
             </div>
@@ -338,14 +338,14 @@ export function Analytics() {
           </Text>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-emerald-50 to-emerald-100">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-emerald-50 to-emerald-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-emerald-500 bg-opacity-10 rounded-full">
               <ShoppingBag className="h-6 w-6 text-emerald-500" />
             </div>
             <div>
               <Text className="text-sm font-medium text-emerald-600">Average Order Value</Text>
-              <Text className="text-2xl font-bold text-emerald-900">
+              <Text className="text-xl sm:text-2xl font-bold text-emerald-900">
                 {formatCurrency(metrics.averageOrderValue)} {businessProfile?.preferred_currency}
               </Text>
             </div>
@@ -355,14 +355,14 @@ export function Analytics() {
           </Text>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-violet-50 to-violet-100">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-violet-50 to-violet-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-violet-500 bg-opacity-10 rounded-full">
               <Users className="h-6 w-6 text-violet-500" />
             </div>
             <div>
               <Text className="text-sm font-medium text-violet-600">Customer Retention</Text>
-              <Text className="text-2xl font-bold text-violet-900">
+              <Text className="text-xl sm:text-2xl font-bold text-violet-900">
                 {metrics.repeatCustomerRate.toFixed(1)}%
               </Text>
             </div>
@@ -374,8 +374,8 @@ export function Analytics() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="p-4 sm:p-6">
           <Title>Revenue Overview</Title>
           <TabGroup>
             <TabList className="mt-4">
@@ -386,7 +386,7 @@ export function Analytics() {
               <TabPanel>
                 <div className="mt-8">
                   <AreaChart
-                    className="h-96"
+                    className="h-72 sm:h-96"
                     data={chartData}
                     index="date"
                     categories={["sales", "expenses"]}
@@ -403,7 +403,7 @@ export function Analytics() {
               <TabPanel>
                 <div className="mt-8">
                   <AreaChart
-                    className="h-96"
+                    className="h-72 sm:h-96"
                     data={chartData}
                     index="date"
                     categories={["profit"]}
@@ -421,11 +421,11 @@ export function Analytics() {
           </TabGroup>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <Title>Top Products</Title>
           <div className="mt-8">
             <BarChart
-              className="h-96"
+              className="h-72 sm:h-96"
               data={topProducts}
               index="name"
               categories={["revenue"]}
@@ -440,11 +440,11 @@ export function Analytics() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <Title>Top Customers</Title>
           <div className="mt-8">
             <BarChart
-              className="h-96"
+              className="h-72 sm:h-96"
               data={topCustomers}
               index="name"
               categories={["revenue"]}
@@ -459,11 +459,11 @@ export function Analytics() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <Title>Sales by Payment Method</Title>
           <div className="mt-8">
             <DonutChart
-              className="h-96"
+              className="h-72 sm:h-96"
               data={transactions
                 .filter(t => t.type === 'sale')
                 .reduce((acc, t) => {

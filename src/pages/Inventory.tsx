@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase, requireAuth } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -8,6 +8,7 @@ import { formatCurrency } from '../lib/format';
 import { DataTable } from '../components/DataTable';
 import { FilterBar } from '../components/FilterBar';
 import { useFilters } from '../lib/hooks/useFilters';
+import { MobileDataControls } from '../components/MobileDataControls';
 
 interface InventoryItem {
   id: string;
@@ -69,6 +70,7 @@ export function Inventory() {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   const {
     state: { page, perPage, search, filters, sortBy, sortDirection },
@@ -133,7 +135,6 @@ export function Inventory() {
 
       setCategories(categoryOptions);
       
-      // Update the category filter options
       FILTER_OPTIONS[1].options = categoryOptions;
     } catch (err) {
       console.error('Error loading categories:', err);
@@ -152,7 +153,6 @@ export function Inventory() {
         .select('*', { count: 'exact' })
         .eq('business_id', businessProfile.id);
 
-      // Apply filters
       if (filters.type) {
         query = query.eq('type', filters.type);
       }
@@ -173,19 +173,16 @@ export function Inventory() {
         }
       }
 
-      // Apply search
       if (search) {
         query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,description.ilike.%${search}%`);
       }
 
-      // Apply sorting
       if (sortBy) {
         query = query.order(sortBy, { ascending: sortDirection === 'asc' });
       } else {
         query = query.order('name');
       }
 
-      // Apply pagination
       const from = (page - 1) * perPage;
       const to = from + perPage - 1;
       query = query.range(from, to);
@@ -227,84 +224,62 @@ export function Inventory() {
     }
   };
 
-  const columns = [
-    {
-      key: 'name',
-      title: 'Name',
-      sortable: true
-    },
-    {
-      key: 'type',
-      title: 'Type',
-      sortable: true,
-      render: (value: string) => (
+  const InventoryListItem = ({ item }: { item: InventoryItem }) => (
+    <div className="bg-white rounded-lg shadow-sm p-4 space-y-2">
+      <div className="flex justify-between items-start">
+        <div>
+          <div className="font-medium">{item.name}</div>
+          {item.sku && (
+            <div className="text-sm text-gray-500">SKU: {item.sku}</div>
+          )}
+        </div>
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          value === 'product'
+          item.type === 'product'
             ? 'bg-primary-100 text-primary-800'
             : 'bg-purple-100 text-purple-800'
         }`}>
-          {value}
+          {item.type}
         </span>
-      )
-    },
-    {
-      key: 'category_id',
-      title: 'Category',
-      render: (value: string) => {
-        const category = categories.find(c => c.value === value);
-        return category?.label || '-';
-      }
-    },
-    {
-      key: 'sku',
-      title: 'SKU',
-      render: (value: string | null) => value || '-'
-    },
-    {
-      key: 'quantity',
-      title: 'Quantity',
-      sortable: true,
-      render: (value: number | null, item: InventoryItem) => (
-        item.type === 'service' ? '-' : value
-      )
-    },
-    {
-      key: 'selling_price',
-      title: 'Selling Price',
-      sortable: true,
-      render: (value: number) => (
-        `${formatCurrency(value)} ${businessProfile?.preferred_currency}`
-      )
-    },
-    {
-      key: 'cost_price',
-      title: 'Cost Price',
-      sortable: true,
-      render: (value: number | null) => (
-        value ? `${formatCurrency(value)} ${businessProfile?.preferred_currency}` : '-'
-      )
-    },
-    {
-      key: 'id',
-      title: 'Actions',
-      render: (_: string, item: InventoryItem) => (
-        <div className="flex justify-end gap-2">
+      </div>
+      {item.description && (
+        <div className="text-sm text-gray-600">{item.description}</div>
+      )}
+      <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+        <div>
+          <div className="text-sm font-medium">
+            {formatCurrency(item.selling_price)} {businessProfile?.preferred_currency}
+          </div>
+          {item.type === 'product' && (
+            <div className={`text-sm ${
+              item.quantity === 0
+                ? 'text-red-600'
+                : item.quantity && item.quantity <= 5
+                ? 'text-yellow-600'
+                : 'text-green-600'
+            }`}>
+              {item.quantity === 0
+                ? 'Out of Stock'
+                : `${item.quantity} in stock`}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
           <button
             onClick={() => handleEdit(item)}
-            className="text-primary-600 hover:text-primary-900"
+            className="p-2 text-primary-600 hover:text-primary-900"
           >
             <Pencil className="h-4 w-4" />
           </button>
           <button
             onClick={() => handleDelete(item.id)}
-            className="text-red-600 hover:text-red-900"
+            className="p-2 text-red-600 hover:text-red-900"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
-      )
-    }
-  ];
+      </div>
+    </div>
+  );
 
   if (!businessProfile) {
     return (
@@ -316,8 +291,41 @@ export function Inventory() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile Header */}
+      <div className="sm:hidden px-4">
+        <h1 className="text-2xl font-bold mb-4">Inventory</h1>
+        <div className="space-y-4">
+          <div className="relative">
+            <input
+              type="search"
+              placeholder="Search inventory..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-gray-50 border-0 rounded-lg py-3 pl-4 pr-4 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setEditingItem(null);
+              setShowForm(true);
+            }}
+            className="w-full bg-primary-600 text-white rounded-lg py-3 font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          >
+            + Add Item
+          </button>
+          <button
+            onClick={() => setShowFilters(true)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200"
+          >
+            <span className="font-medium">Filters</span>
+            <span className="text-gray-400">›</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden sm:flex items-center justify-between">
         <h1>Inventory</h1>
         <button
           onClick={() => {
@@ -331,29 +339,157 @@ export function Inventory() {
         </button>
       </div>
 
-      <FilterBar
-        filters={filters}
-        options={FILTER_OPTIONS}
-        onFilterChange={setFilter}
-        onFilterRemove={removeFilter}
-        onFiltersClear={clearFilters}
-      />
+      {/* Filters */}
+      <div className="hidden sm:block">
+        <FilterBar
+          filters={filters}
+          options={FILTER_OPTIONS}
+          onFilterChange={setFilter}
+          onFilterRemove={removeFilter}
+          onFiltersClear={clearFilters}
+        />
+      </div>
 
-      <DataTable
-        data={items}
-        columns={columns}
-        totalItems={totalItems}
-        page={page}
-        perPage={perPage}
-        search={search}
-        sortBy={sortBy}
-        sortDirection={sortDirection}
-        onPageChange={setPage}
-        onPerPageChange={setPerPage}
-        onSearchChange={setSearch}
-        onSort={setSort}
-      />
+      {/* Mobile Inventory List */}
+      <div className="sm:hidden px-4 space-y-4">
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow-sm p-4 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg">
+            <p className="text-gray-500">No items found</p>
+          </div>
+        ) : (
+          items.map(item => (
+            <InventoryListItem key={item.id} item={item} />
+          ))
+        )}
 
+        <MobileDataControls
+          totalItems={totalItems}
+          page={page}
+          perPage={perPage}
+          onPageChange={setPage}
+          onPerPageChange={setPerPage}
+        />
+      </div>
+
+      {/* Desktop Data Table */}
+      <div className="hidden sm:block">
+        <DataTable
+          data={items}
+          columns={[
+            {
+              key: 'name',
+              title: 'Name',
+              sortable: true
+            },
+            {
+              key: 'type',
+              title: 'Type',
+              sortable: true,
+              render: (value: string) => (
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  value === 'product'
+                    ? 'bg-primary-100 text-primary-800'
+                    : 'bg-purple-100 text-purple-800'
+                }`}>
+                  {value}
+                </span>
+              )
+            },
+            {
+              key: 'category_id',
+              title: 'Category',
+              render: (value: string) => {
+                const category = categories.find(c => c.value === value);
+                return category?.label || '-';
+              }
+            },
+            {
+              key: 'sku',
+              title: 'SKU',
+              render: (value: string | null) => value || '-'
+            },
+            {
+              key: 'quantity',
+              title: 'Quantity',
+              sortable: true,
+              render: (value: number | null, item: InventoryItem) => (
+                item.type === 'service' ? '-' : value
+              )
+            },
+            {
+              key: 'selling_price',
+              title: 'Selling Price',
+              sortable: true,
+              render: (value: number) => (
+                `${formatCurrency(value)} ${businessProfile?.preferred_currency}`
+              )
+            },
+            {
+              key: 'cost_price',
+              title: 'Cost Price',
+              sortable: true,
+              render: (value: number | null) => (
+                value ? `${formatCurrency(value)} ${businessProfile?.preferred_currency}` : '-'
+              )
+            },
+            {
+              key: 'id',
+              title: 'Actions',
+              render: (_: string, item: InventoryItem) => (
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => handleEdit(item)}
+                    className="text-primary-600 hover:text-primary-900"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )
+            }
+          ]}
+          totalItems={totalItems}
+          page={page}
+          perPage={perPage}
+          search={search}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onPageChange={setPage}
+          onPerPageChange={setPerPage}
+          onSearchChange={setSearch}
+          onSort={setSort}
+        />
+      </div>
+
+      {/* Mobile Floating Action Button */}
+      <div className="fixed bottom-6 right-6 sm:hidden">
+        <button
+          onClick={() => {
+            setEditingItem(null);
+            setShowForm(true);
+          }}
+          className="h-14 w-14 rounded-full bg-primary-600 text-white shadow-lg flex items-center justify-center hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -369,6 +505,42 @@ export function Inventory() {
                 loadInventoryItems();
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Filters Modal */}
+      {showFilters && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 sm:hidden">
+          <div className="bg-white rounded-lg shadow-xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Filters</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              <FilterBar
+                filters={filters}
+                options={FILTER_OPTIONS}
+                onFilterChange={setFilter}
+                onFilterRemove={removeFilter}
+                onFiltersClear={clearFilters}
+              />
+            </div>
+            <div className="p-4 border-t">
+              <button
+                onClick={() => setShowFilters(false)}
+                className="w-full bg-primary-600 text-white rounded-lg py-3 font-medium"
+              >
+                Apply Filters
+              </button>
+            </div>
           </div>
         </div>
       )}
