@@ -489,7 +489,7 @@ export function Settings() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <label className="block text-sm font-medium text-gray-700">Phone Number (WhatsApp preferred)</label>
                     <input
                       type="tel"
                       value={userFormData.phone || ''}
