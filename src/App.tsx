@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Transactions } from './pages/Transactions';
+import { BankPaymentRecords } from './pages/BankPaymentRecords';
 import { Inventory } from './pages/Inventory';
 import { Documents } from './pages/Documents';
 import { Analytics } from './pages/Analytics';
@@ -42,6 +43,7 @@ function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="transactions" element={<Transactions />} />
+          <Route path="bank-records" element={<BankPaymentRecords />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="documents" element={<Documents />} />
           <Route path="analytics" element={<Analytics />} />

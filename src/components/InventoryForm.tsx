@@ -28,24 +28,25 @@ interface InventoryItem {
 
 interface InventoryFormProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (item: any) => void;
   editItem?: InventoryItem;
+  initialData?: Partial<InventoryItem>;
 }
 
-export function InventoryForm({ onClose, onSuccess, editItem }: InventoryFormProps) {
+export function InventoryForm({ onClose, onSuccess, editItem, initialData }: InventoryFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategory, setNewCategory] = useState('');
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
   const [formData, setFormData] = useState<InventoryItem>({
-    type: 'product',
-    name: '',
+    type: initialData?.type || 'product',
+    name: initialData?.name || '',
     category_id: '',
     sku: '',
     description: '',
     quantity: 0,
-    selling_price: '',
+    selling_price: initialData?.selling_price || '',
     cost_price: '',
   });
 
@@ -147,23 +148,30 @@ export function InventoryForm({ onClose, onSuccess, editItem }: InventoryFormPro
       };
 
       let error;
+      let data;
       if (editItem?.id) {
-        const { error: updateError } = await supabase
+        const response = await supabase
           .from('inventory_items')
           .update(itemData)
-          .eq('id', editItem.id);
-        error = updateError;
+          .eq('id', editItem.id)
+          .select()
+          .single();
+        error = response.error;
+        data = response.data;
       } else {
-        const { error: insertError } = await supabase
+        const response = await supabase
           .from('inventory_items')
-          .insert(itemData);
-        error = insertError;
+          .insert(itemData)
+          .select()
+          .single();
+        error = response.error;
+        data = response.data;
       }
 
       if (error) throw error;
 
       toast.success(editItem ? 'Item updated successfully' : 'Item added successfully');
-      onSuccess();
+      onSuccess(data);
     } catch (err) {
       console.error('Error saving item:', err);
       toast.error('Failed to save item');

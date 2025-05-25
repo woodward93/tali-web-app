@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { formatCurrency } from '../lib/format';
@@ -18,8 +18,16 @@ import type {
 interface TransactionFormProps {
   type: TransactionType;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (transactionId: string) => void;
   editTransaction?: Transaction;
+  initialData?: {
+    date?: string;
+    items?: TransactionItem[];
+    contact_name?: string;
+    payment_method?: PaymentMethod;
+    payment_status?: PaymentStatus;
+    amount_paid?: number;
+  };
 }
 
 interface BusinessProfile {
@@ -47,24 +55,24 @@ const PAYMENT_STATUSES: { value: PaymentStatus; label: string }[] = [
   { value: 'unpaid', label: 'Unpaid' },
 ];
 
-export function TransactionForm({ type, onClose, onSuccess, editTransaction }: TransactionFormProps) {
+export function TransactionForm({ type, onClose, onSuccess, editTransaction, initialData }: TransactionFormProps) {
   const { user } = useAuth();
-  const [step, setStep] = useState<'select_items' | 'transaction_details'>('select_items');
+  const [step, setStep] = useState<'select_items' | 'transaction_details'>(initialData?.items?.length ? 'transaction_details' : 'select_items');
   const [loading, setLoading] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [selectedItems, setSelectedItems] = useState<TransactionItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<TransactionItem[]>(initialData?.items || []);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string>('');
-  const [newContact, setNewContact] = useState({ name: '', phone: '' });
-  const [showNewContactForm, setShowNewContactForm] = useState(false);
+  const [newContact, setNewContact] = useState({ name: initialData?.contact_name || '', phone: '' });
+  const [showNewContactForm, setShowNewContactForm] = useState(!!initialData?.contact_name);
   const [showNewItemForm, setShowNewItemForm] = useState(false);
   const [discount, setDiscount] = useState<string>('0');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('paid');
-  const [amountPaid, setAmountPaid] = useState<string>('0');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initialData?.payment_method || 'cash');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialData?.payment_status || 'paid');
+  const [amountPaid, setAmountPaid] = useState<string>(initialData?.amount_paid?.toString() || '0');
   const [stockError, setStockError] = useState<StockError | null>(null);
-  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [transactionDate, setTransactionDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     if (user) {
@@ -217,7 +225,24 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction }: T
 
   const handleQuantityChange = (itemId: string, quantityStr: string) => {
     const quantity = parseInt(quantityStr, 10);
-    if (isNaN(quantity) || quantity < 1) return;
+    
+    // Allow empty string for clearing the field
+    if (quantityStr === '') {
+      setSelectedItems(selectedItems.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            quantity_selected: 0,
+            subtotal: 0
+          };
+        }
+        return item;
+      }));
+      return;
+    }
+
+    // Validate quantity is a positive number
+    if (isNaN(quantity) || quantity < 0) return;
 
     const item = inventoryItems.find(i => i.id === itemId);
     if (!item) return;
@@ -343,21 +368,29 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction }: T
         date: transactionDate,
       };
 
-      let error;
+      let transactionId: string;
       if (editTransaction) {
-        ({ error } = await supabase
+        const { data, error } = await supabase
           .from('transactions')
           .update(transactionData)
-          .eq('id', editTransaction.id));
+          .eq('id', editTransaction.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        transactionId = data.id;
       } else {
-        ({ error } = await supabase
+        const { data, error } = await supabase
           .from('transactions')
-          .insert(transactionData));
+          .insert(transactionData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        transactionId = data.id;
       }
 
-      if (error) throw error;
-
-      // Update inventory quantities only for products
+      // Update inventory quantities
       for (const item of selectedItems) {
         const inventoryItem = inventoryItems.find(i => i.id === item.id);
         if (inventoryItem?.type === 'product') {
@@ -375,7 +408,7 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction }: T
       }
 
       toast.success(`${type === 'sale' ? 'Sale' : 'Expense'} ${editTransaction ? 'updated' : 'recorded'} successfully`);
-      onSuccess();
+      onSuccess(transactionId);
     } catch (err) {
       console.error('Error saving transaction:', err);
       toast.error(`Failed to ${editTransaction ? 'update' : 'save'} transaction`);
@@ -510,8 +543,8 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction }: T
                   <span className="flex-1">{item.name}</span>
                   <input
                     type="number"
-                    min="1"
-                    value={item.quantity_selected}
+                    min="0"
+                    value={item.quantity_selected || ''}
                     onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                     className="w-24"
                   />

@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Receipt, 
-  Package, 
-  FileText, 
-  BarChart2,
-  Settings,
-  LogOut,
-  Menu,
-  AlertCircle,
-  X,
-  Calculator,
-} from 'lucide-react';
+import { LayoutDashboard, Receipt, Package, FileText, BarChart2, Settings, LogOut, Menu, AlertCircle, X, Calculator, Landmark } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, loadBusinessProfile } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -27,6 +15,7 @@ interface BusinessProfile {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
+  { name: 'Bank Records', href: '/bank-records', icon: Landmark },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Receipts & Invoices', href: '/documents', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart2 },

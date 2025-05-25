@@ -11,7 +11,8 @@ import {
   Package,
   Users,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  Landmark,
 } from 'lucide-react';
 import { format, subMonths, startOfYear, isAfter } from 'date-fns';
 import { toast } from 'sonner';
@@ -24,6 +25,7 @@ import type { Transaction } from '../types';
 type DateRange = '1M' | '3M' | '6M' | 'YTD' | 'ALL';
 
 interface BusinessProfile {
+  id: string;
   preferred_currency: string;
 }
 
@@ -56,39 +58,37 @@ export function Dashboard() {
     totalSupplierDebt: 0,
     salesGrowth: 0,
     profitMargin: 0,
-    totalOrders: 0
+    totalOrders: 0,
   });
+  const [unprocessedPayments, setUnprocessedPayments] = useState<number>(0);
 
+  // Load business profile on auth
   useEffect(() => {
-    if (user) {
-      loadBusinessProfile();
-    }
+    if (user) loadBusinessProfile();
   }, [user]);
 
+  // After profile, load all data
   useEffect(() => {
     if (businessProfile) {
+      loadUnprocessedPayments();
       Promise.all([
         loadTransactions(),
         loadInventoryMetrics(),
-        loadDebtMetrics()
-      ]);
+        loadDebtMetrics(),
+      ]).finally(() => setLoading(false));
     }
   }, [businessProfile, dateRange]);
 
+  // Fetch user business profile
   const loadBusinessProfile = async () => {
     try {
-      const { data: businesses, error: businessError } = await supabase
+      const { data, error } = await supabase
         .from('businesses')
         .select('id, preferred_currency')
-        .eq('user_id', user?.id);
-
-      if (businessError) throw businessError;
-      if (!businesses || businesses.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      setBusinessProfile(businesses[0]);
+        .eq('user_id', user?.id)
+        .single();
+      if (error) throw error;
+      setBusinessProfile(data);
     } catch (err) {
       console.error('Error loading business profile:', err);
       toast.error('Failed to load business profile');
@@ -96,16 +96,28 @@ export function Dashboard() {
     }
   };
 
+  // Count unprocessed payments
+  const loadUnprocessedPayments = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('bank_payment_records')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', businessProfile!.id)
+        .eq('processed', false);
+      if (error) throw error;
+      setUnprocessedPayments(count || 0);
+    } catch (err) {
+      console.error('Error loading unprocessed payments:', err);
+    }
+  };
+
+  // Load transactions
   const loadTransactions = async () => {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          contact:contacts(name)
-        `)
+        .select('*, contact:contacts(name)')
         .order('date', { ascending: true });
-
       if (error) throw error;
       setTransactions(data || []);
       processTransactionData(data || []);
@@ -115,147 +127,87 @@ export function Dashboard() {
     }
   };
 
+  // Load inventory metrics
   const loadInventoryMetrics = async () => {
     try {
-      const { data: products, error: productsError } = await supabase
+      const { data, error } = await supabase
         .from('inventory_items')
         .select('id, name, quantity, sku', { count: 'exact' })
         .eq('type', 'product');
-
-      if (productsError) throw productsError;
-
-      const lowStock = (products || []).filter(p => p.quantity <= 3);
-      setLowStockProducts(lowStock);
-
-      setMetrics(prev => ({
-        ...prev,
-        totalProducts: products?.length || 0
-      }));
+      if (error) throw error;
+      setLowStockProducts((data || []).filter(p => p.quantity <= 3));
+      setMetrics(prev => ({ ...prev, totalProducts: data?.length || 0 }));
     } catch (err) {
       console.error('Error loading inventory metrics:', err);
       toast.error('Failed to load inventory metrics');
     }
   };
 
+  // Load debt metrics
   const loadDebtMetrics = async () => {
     try {
-      const { data: customerDebts, error: customerDebtsError } = await supabase
+      // Customer debts
+      const { data: cust, error: custErr } = await supabase
         .from('transactions')
-        .select(`
-          contact_id,
-          contact:contacts(name),
-          total,
-          amount_paid
-        `)
+        .select('contact_id, contact:contacts(name), total, amount_paid')
         .eq('type', 'sale')
         .neq('payment_status', 'paid');
-
-      if (customerDebtsError) throw customerDebtsError;
-
-      const { data: supplierDebts, error: supplierDebtsError } = await supabase
+      if (custErr) throw custErr;
+      // Supplier debts
+      const { data: supp, error: suppErr } = await supabase
         .from('transactions')
-        .select(`
-          contact_id,
-          contact:contacts(name),
-          total,
-          amount_paid
-        `)
+        .select('contact_id, contact:contacts(name), total, amount_paid')
         .eq('type', 'expense')
         .neq('payment_status', 'paid');
+      if (suppErr) throw suppErr;
 
-      if (supplierDebtsError) throw supplierDebtsError;
+      const totalCust = (cust || []).reduce((sum, t) => sum + (t.total - (t.amount_paid || 0)), 0);
+      const totalSupp = (supp || []).reduce((sum, t) => sum + (t.total - (t.amount_paid || 0)), 0);
 
-      const totalCustomerDebt = (customerDebts || []).reduce(
-        (sum, t) => sum + (t.total - (t.amount_paid || 0)),
-        0
-      );
-
-      const totalSupplierDebt = (supplierDebts || []).reduce(
-        (sum, t) => sum + (t.total - (t.amount_paid || 0)),
-        0
-      );
-
-      const debtorMap = new Map<string, CustomerDebt>();
-      customerDebts?.forEach(t => {
-        const existing = debtorMap.get(t.contact_id) || {
-          contact_id: t.contact_id,
-          contact_name: t.contact.name,
-          total_owed: 0
-        };
-        existing.total_owed += (t.total - (t.amount_paid || 0));
-        debtorMap.set(t.contact_id, existing);
+      // Top debtors
+      const map = new Map<string, CustomerDebt>();
+      (cust || []).forEach(t => {
+        const ex = map.get(t.contact_id) || { contact_id: t.contact_id, contact_name: t.contact.name, total_owed: 0 };
+        ex.total_owed += (t.total - (t.amount_paid || 0));
+        map.set(t.contact_id, ex);
       });
+      setTopDebtors(Array.from(map.values()).sort((a, b) => b.total_owed - a.total_owed).slice(0, 5));
 
-      const topDebtors = Array.from(debtorMap.values())
-        .sort((a, b) => b.total_owed - a.total_owed)
-        .slice(0, 5);
-
-      setTopDebtors(topDebtors);
-      setMetrics(prev => ({
-        ...prev,
-        totalCustomerDebt,
-        totalSupplierDebt
-      }));
+      setMetrics(prev => ({ ...prev, totalCustomerDebt: totalCust, totalSupplierDebt: totalSupp }));
     } catch (err) {
       console.error('Error loading debt metrics:', err);
       toast.error('Failed to load debt metrics');
     }
   };
 
-  const getDateRangeStart = () => {
-    const now = new Date();
-    switch (dateRange) {
-      case '1M':
-        return subMonths(now, 1);
-      case '3M':
-        return subMonths(now, 3);
-      case '6M':
-        return subMonths(now, 6);
-      case 'YTD':
-        return startOfYear(now);
-      case 'ALL':
-        return new Date(0);
-      default:
-        return subMonths(now, 3);
-    }
-  };
+  // Process transaction data for metrics
+  const processTransactionData = (txs: Transaction[]) => {
+    const start = (() => {
+      const now = new Date();
+      switch (dateRange) {
+        case '1M': return subMonths(now, 1);
+        case '3M': return subMonths(now, 3);
+        case '6M': return subMonths(now, 6);
+        case 'YTD': return startOfYear(now);
+        case 'ALL': return new Date(0);
+        default: return subMonths(now, 3);
+      }
+    })();
+    const filtered = txs.filter(t => isAfter(new Date(t.date), start));
+    const sales = filtered.filter(t => t.type === 'sale');
+    const expenses = filtered.filter(t => t.type === 'expense');
+    const totalSales = sales.reduce((s, t) => s + t.total, 0);
+    const totalExpenses = expenses.reduce((s, t) => s + t.total, 0);
 
-  const processTransactionData = (transactions: Transaction[]) => {
-    const rangeStart = getDateRangeStart();
-    const filteredTransactions = transactions.filter(t => 
-      isAfter(new Date(t.date), rangeStart)
-    );
+    // Sales growth
+    const mid = new Date((new Date().getTime() + start.getTime()) / 2);
+    const recent = sales.filter(t => isAfter(new Date(t.date), mid)).reduce((s, t) => s + t.total, 0);
+    const prev = sales.filter(t => !isAfter(new Date(t.date), mid)).reduce((s, t) => s + t.total, 0);
+    const salesGrowth = prev > 0 ? ((recent - prev) / prev) * 100 : 0;
 
-    const sales = filteredTransactions.filter(t => t.type === 'sale');
-    const expenses = filteredTransactions.filter(t => t.type === 'expense');
-    const totalSales = sales.reduce((sum, t) => sum + t.total, 0);
-    const totalExpenses = expenses.reduce((sum, t) => sum + t.total, 0);
+    const profitMargin = totalSales > 0 ? ((totalSales - totalExpenses) / totalSales) * 100 : 0;
 
-    const midPoint = new Date((new Date().getTime() + rangeStart.getTime()) / 2);
-    const recentSales = sales
-      .filter(t => isAfter(new Date(t.date), midPoint))
-      .reduce((sum, t) => sum + t.total, 0);
-    const previousSales = sales
-      .filter(t => !isAfter(new Date(t.date), midPoint))
-      .reduce((sum, t) => sum + t.total, 0);
-    const salesGrowth = previousSales > 0 
-      ? ((recentSales - previousSales) / previousSales) * 100 
-      : 0;
-
-    const profitMargin = totalSales > 0 
-      ? ((totalSales - totalExpenses) / totalSales) * 100 
-      : 0;
-
-    setMetrics(prev => ({
-      ...prev,
-      totalSales,
-      totalExpenses,
-      salesGrowth,
-      profitMargin,
-      totalOrders: sales.length
-    }));
-
-    setLoading(false);
+    setMetrics(prev => ({ ...prev, totalSales, totalExpenses, salesGrowth, profitMargin, totalOrders: sales.length }));
   };
 
   if (loading) {
@@ -268,26 +220,56 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Banner for unprocessed bank records */}
+      {unprocessedPayments > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <Landmark className="h-5 w-5 text-amber-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-amber-800">
+                Unprocessed Bank Records
+              </h3>
+              <p className="mt-1 text-sm text-amber-700">
+                You have {unprocessedPayments} unprocessed bank payment{' '}
+                {unprocessedPayments === 1 ? 'record' : 'records'} that need attention.
+              </p>
+            </div>
+            <Link
+              to="/bank-records"
+              className="flex items-center gap-1 text-sm font-medium text-amber-800 hover:text-amber-900"
+            >
+              View Records
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Dashboard header */}
       <div className="flex items-center justify-between">
         <Title>Dashboard</Title>
         <div className="flex gap-2">
-          {(['1M', '3M', '6M', 'YTD', 'ALL'] as DateRange[]).map(range => (
+          {(['1M', '3M', '6M', 'YTD', 'ALL'] as DateRange[]).map(r => (
             <button
-              key={range}
-              onClick={() => setDateRange(range)}
+              key={r}
+              onClick={() => setDateRange(r)}
               className={`px-3 py-1 text-sm rounded-md ${
-                dateRange === range
+                dateRange === r
                   ? 'bg-primary-500 text-white'
                   : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
-              {range}
+              {r}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Metrics cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Total Sales */}
         <Card className="p-6 bg-gradient-to-br from-rose-50 to-rose-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-rose-500 bg-opacity-10 rounded-full">
@@ -305,6 +287,7 @@ export function Dashboard() {
           </Text>
         </Card>
 
+        {/* Total Expenses */}
         <Card className="p-6 bg-gradient-to-br from-amber-50 to-amber-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-amber-500 bg-opacity-10 rounded-full">
@@ -322,6 +305,7 @@ export function Dashboard() {
           </Text>
         </Card>
 
+        {/* Products in Stock */}
         <Card className="p-6 bg-gradient-to-br from-emerald-50 to-emerald-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-emerald-500 bg-opacity-10 rounded-full">
@@ -339,6 +323,7 @@ export function Dashboard() {
           </Text>
         </Card>
 
+        {/* Outstanding Balance */}
         <Card className="p-6 bg-gradient-to-br from-violet-50 to-violet-100">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 p-3 bg-violet-500 bg-opacity-10 rounded-full">
@@ -357,6 +342,7 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/* Low Stock Items */}
       {lowStockProducts.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-4">
@@ -364,30 +350,19 @@ export function Dashboard() {
               <AlertTriangle className="h-5 w-5 text-amber-500" />
               <Title>Low Stock Items</Title>
             </div>
-            <Link
-              to="/inventory"
-              className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
-            >
-              Manage Inventory
-              <ArrowRight className="h-4 w-4" />
+            <Link to="/inventory" className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700">
+              Manage Inventory<ArrowRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="space-y-4">
-            {lowStockProducts.map(product => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-              >
+            {lowStockProducts.map(p => (
+              <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <h3 className="font-medium">{product.name}</h3>
-                  {product.sku && (
-                    <p className="text-sm text-gray-500">SKU: {product.sku}</p>
-                  )}
+                  <h3 className="font-medium">{p.name}</h3>
+                  {p.sku && <p className="text-sm text-gray-500">SKU: {p.sku}</p>}
                 </div>
-                <Badge
-                  color={product.quantity === 0 ? "red" : "yellow"}
-                >
-                  {product.quantity === 0 ? 'Out of Stock' : `${product.quantity} left`}
+                <Badge color={p.quantity === 0 ? 'red' : 'yellow'}>
+                  {p.quantity === 0 ? 'Out of Stock' : `${p.quantity} left`}
                 </Badge>
               </div>
             ))}
@@ -395,27 +370,21 @@ export function Dashboard() {
         </Card>
       )}
 
+      {/* Top Owing Customers */}
       {topDebtors.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-4">
             <Title>Top Owing Customers</Title>
-            <Link
-              to="/transactions"
-              className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
-            >
-              Manage Transactions
-              <ArrowRight className="h-4 w-4" />
+            <Link to="/transactions" className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700">
+              Manage Transactions<ArrowRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="space-y-4">
-            {topDebtors.map(debtor => (
-              <div
-                key={debtor.contact_id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-              >
-                <h3 className="font-medium">{debtor.contact_name}</h3>
+            {topDebtors.map(d => (
+              <div key={d.contact_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-medium">{d.contact_name}</h3>
                 <p className="font-medium text-red-600">
-                  {formatCurrency(debtor.total_owed)} {businessProfile?.preferred_currency}
+                  {formatCurrency(d.total_owed)} {businessProfile?.preferred_currency}
                 </p>
               </div>
             ))}
