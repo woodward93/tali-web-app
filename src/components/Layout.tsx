@@ -15,7 +15,6 @@ interface BusinessProfile {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
-  { name: 'Bank Records', href: '/bank-records', icon: Landmark },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Receipts & Invoices', href: '/documents', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart2 },
@@ -132,6 +131,16 @@ export function Layout() {
     );
   };
 
+  const desktopNavigation = [
+    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Transactions', href: '/transactions', icon: Receipt },
+    { name: 'Bank Records', href: '/bank-records', icon: Landmark },
+    { name: 'Inventory', href: '/inventory', icon: Package },
+    { name: 'Receipts & Invoices', href: '/documents', icon: FileText },
+    { name: 'Analytics', href: '/analytics', icon: BarChart2 },
+    { name: 'Settings', href: '/settings', icon: Settings }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
@@ -201,7 +210,7 @@ export function Layout() {
           </div>
           <BusinessProfile />
           <nav className="flex flex-col gap-1 p-4 flex-1">
-            {navigation.map((item) => (
+            {desktopNavigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
