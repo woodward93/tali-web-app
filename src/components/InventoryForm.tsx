@@ -226,26 +226,30 @@ export function InventoryForm({ onClose, onSuccess, editItem, initialData }: Inv
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Category</label>
-          <div className="mt-1 flex gap-2">
-            <select
-              value={formData.category_id}
-              onChange={e => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-            >
-              <option value="">Select a category</option>
-              {categories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2">
+          <div className="mt-1 flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-1/2">
+              <select
+                value={formData.category_id}
+                onChange={e => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              >
+                <option value="">Select a category</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="hidden sm:flex items-center text-gray-500 font-medium">OR</div>
+            <div className="flex items-center sm:hidden justify-center text-gray-500 font-medium">OR</div>
+            <div className="flex w-full sm:w-auto gap-2">
               <input
                 type="text"
-                placeholder="New category"
+                placeholder="Add new category"
                 value={newCategory}
                 onChange={e => setNewCategory(e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className="block flex-1 sm:w-48 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
               <button
                 type="button"

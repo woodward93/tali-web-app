@@ -57,6 +57,22 @@ interface CategoryPerformance {
   revenue: number;
 }
 
+interface TimeBreakdown {
+  time: string;
+  sales: number;
+  count: number;
+}
+
+interface ExpenseBreakdown {
+  name: string;
+  amount: number;
+}
+
+interface DayBreakdown {
+  day: string;
+  sales: number;
+}
+
 export function Analytics() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -66,6 +82,10 @@ export function Analytics() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductPerformance[]>([]);
   const [topCustomers, setTopCustomers] = useState<CustomerPerformance[]>([]);
+  const [topExpenses, setTopExpenses] = useState<ExpenseBreakdown[]>([]);
+  const [topSuppliers, setTopSuppliers] = useState<ExpenseBreakdown[]>([]);
+  const [bestSalesTimes, setbestSalesTimes] = useState<TimeBreakdown[]>([]);
+  const [salesByDay, setSalesByDay] = useState<DayBreakdown[]>([]);
   const [metrics, setMetrics] = useState({
     averageOrderValue: 0,
     repeatCustomerRate: 0,
@@ -219,6 +239,82 @@ export function Analytics() {
       Array.from(customerPerformance.values())
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 5)
+    );
+
+    // Calculate top expenses by category
+    const expensesByCategory = new Map<string, number>();
+    filteredTransactions
+      .filter(t => t.type === 'expense')
+      .forEach(transaction => {
+        transaction.items.forEach(item => {
+          const currentAmount = expensesByCategory.get(item.name) || 0;
+          expensesByCategory.set(item.name, currentAmount + item.subtotal);
+        });
+      });
+
+    setTopExpenses(
+      Array.from(expensesByCategory.entries())
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5)
+    );
+
+    // Calculate top suppliers
+    const supplierExpenses = new Map<string, number>();
+    filteredTransactions
+      .filter(t => t.type === 'expense' && t.contact?.name)
+      .forEach(transaction => {
+        const supplierName = transaction.contact!.name;
+        const currentAmount = supplierExpenses.get(supplierName) || 0;
+        supplierExpenses.set(supplierName, currentAmount + transaction.total);
+      });
+
+    setTopSuppliers(
+      Array.from(supplierExpenses.entries())
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5)
+    );
+
+    // Calculate best sales times
+    const salesByHour = new Map<string, number>();
+    const salesCountByHour = new Map<string, number>();
+    filteredTransactions
+      .filter(t => t.type === 'sale')
+      .forEach(transaction => {
+        const hour = new Date(transaction.date).getHours();
+        const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+        const currentAmount = salesByHour.get(timeSlot) || 0;
+        const currentCount = salesCountByHour.get(timeSlot) || 0;
+        salesByHour.set(timeSlot, currentAmount + transaction.total);
+        salesCountByHour.set(timeSlot, currentCount + 1);
+      });
+
+    setbestSalesTimes(
+      Array.from(salesByHour.entries())
+        .map(([time, sales]) => ({ 
+          time, 
+          sales,
+          count: salesCountByHour.get(time) || 0
+        }))
+        .sort((a, b) => b.sales - a.sales)
+    );
+
+    // Calculate sales by day of week
+    const salesByDay = new Map<string, number>();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    filteredTransactions
+      .filter(t => t.type === 'sale')
+      .forEach(transaction => {
+        const day = days[new Date(transaction.date).getDay()];
+        const currentAmount = salesByDay.get(day) || 0;
+        salesByDay.set(day, currentAmount + transaction.total);
+      });
+
+    setSalesByDay(
+      Array.from(salesByDay.entries())
+        .map(([day, sales]) => ({ day, sales }))
+        .sort((a, b) => b.sales - a.sales)
     );
 
     // Calculate metrics
@@ -422,6 +518,44 @@ export function Analytics() {
         </Card>
 
         <Card className="p-4 sm:p-6">
+          <Title>Sales by Day of Week</Title>
+          <div className="mt-8">
+            <BarChart
+              className="h-72 sm:h-96"
+              data={salesByDay}
+              index="day"
+              categories={["sales"]}
+              colors={["cyan"]}
+              layout="horizontal"
+              valueFormatter={(value) => `${formatCurrency(value)} ${businessProfile?.preferred_currency}`}
+              showLegend={false}
+              showGridLines
+              showAnimation
+              yAxisWidth={80}
+              minValue={0}
+            />
+            <div className="mt-8">
+              <Title>Best Sales Times</Title>
+              <div className="mt-4 space-y-4">
+                {bestSalesTimes.slice(0, 5).map((timeSlot, index) => (
+                  <div key={timeSlot.time} className="flex items-center justify-between">
+                    <div>
+                      <Text className="font-medium">{timeSlot.time}</Text>
+                      <Text className="text-sm text-gray-500">
+                        {timeSlot.count} {timeSlot.count === 1 ? 'sale' : 'sales'}
+                      </Text>
+                    </div>
+                    <Text className="font-medium">
+                      {formatCurrency(timeSlot.sales)} {businessProfile?.preferred_currency}
+                    </Text>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-6">
           <Title>Top Products</Title>
           <div className="mt-8">
             <BarChart
@@ -441,6 +575,25 @@ export function Analytics() {
         </Card>
 
         <Card className="p-4 sm:p-6">
+          <Title>Top Expenses</Title>
+          <div className="mt-8">
+            <BarChart
+              className="h-72 sm:h-96"
+              data={topExpenses}
+              index="name"
+              categories={["amount"]}
+              colors={["red"]}
+              valueFormatter={(value) => `${formatCurrency(value)} ${businessProfile?.preferred_currency}`}
+              showLegend={false}
+              showGridLines
+              showAnimation
+              yAxisWidth={120}
+              minValue={0}
+            />
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-6">
           <Title>Top Customers</Title>
           <div className="mt-8">
             <BarChart
@@ -449,6 +602,25 @@ export function Analytics() {
               index="name"
               categories={["revenue"]}
               colors={["emerald"]}
+              valueFormatter={(value) => `${formatCurrency(value)} ${businessProfile?.preferred_currency}`}
+              showLegend={false}
+              showGridLines
+              showAnimation
+              yAxisWidth={120}
+              minValue={0}
+            />
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-6">
+          <Title>Top Suppliers</Title>
+          <div className="mt-8">
+            <BarChart
+              className="h-72 sm:h-96"
+              data={topSuppliers}
+              index="name"
+              categories={["amount"]}
+              colors={["amber"]}
               valueFormatter={(value) => `${formatCurrency(value)} ${businessProfile?.preferred_currency}`}
               showLegend={false}
               showGridLines
