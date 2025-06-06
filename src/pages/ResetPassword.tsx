@@ -88,7 +88,7 @@ export function ResetPassword() {
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 text-primary-600 mb-8">
               <Calculator className="h-12 w-12" />
-              <h1 className="text-4xl font-extrabold">tali</h1>
+              <h1 className="text-4xl font-extrabold text-[#0057D9]">tali</h1>
             </div>
             <h2 className="mt-6 text-3xl font-bold text-gray-900">
               Reset Your Password
