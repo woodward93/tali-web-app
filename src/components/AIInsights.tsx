@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, Lightbulb, TrendingUp, X } from 'lucide-react';
+import { Brain, Lightbulb, TrendingUp, X, Volume2, VolumeX } from 'lucide-react';
 import { Card, Title } from '@tremor/react';
 import { toast } from 'sonner';
 
@@ -28,6 +28,8 @@ export function AIInsights({ metrics, topProducts, topCustomers }: AIInsightsPro
   const [loading, setLoading] = useState(false);
   const [insights, setInsights] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
 
   const generateInsights = async () => {
     try {
@@ -70,6 +72,81 @@ export function AIInsights({ metrics, topProducts, topCustomers }: AIInsightsPro
     }
   };
 
+  const handleTextToSpeech = () => {
+    // Check if speech synthesis is supported
+    if (!('speechSynthesis' in window)) {
+      toast.error('Text-to-speech is not supported in your browser');
+      return;
+    }
+
+    if (isPlaying && currentUtterance) {
+      // Stop current speech
+      speechSynthesis.cancel();
+      setIsPlaying(false);
+      setCurrentUtterance(null);
+      return;
+    }
+
+    if (insights.length === 0) {
+      toast.error('No insights available to read');
+      return;
+    }
+
+    // Prepare text to speak
+    const textToSpeak = insights.join('. ');
+    
+    // Create speech synthesis utterance
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    
+    // Configure speech settings
+    utterance.rate = 0.9; // Slightly slower for better comprehension
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    // Set up event handlers
+    utterance.onstart = () => {
+      setIsPlaying(true);
+    };
+    
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setCurrentUtterance(null);
+    };
+    
+    utterance.onerror = (event) => {
+      // Only show error for actual errors, not user-initiated cancellations
+      if (event.error !== 'canceled' && event.error !== 'interrupted') {
+        console.error('Speech synthesis error:', event);
+        toast.error('Failed to play audio');
+      }
+      setIsPlaying(false);
+      setCurrentUtterance(null);
+    };
+
+    // Store the utterance reference
+    setCurrentUtterance(utterance);
+    
+    // Start speaking
+    speechSynthesis.speak(utterance);
+  };
+
+  // Clean up speech synthesis when component unmounts or modal closes
+  React.useEffect(() => {
+    return () => {
+      if (currentUtterance) {
+        speechSynthesis.cancel();
+      }
+    };
+  }, [currentUtterance]);
+
+  React.useEffect(() => {
+    if (!showModal && currentUtterance) {
+      speechSynthesis.cancel();
+      setIsPlaying(false);
+      setCurrentUtterance(null);
+    }
+  }, [showModal, currentUtterance]);
+
   return (
     <>
       <button
@@ -93,12 +170,32 @@ export function AIInsights({ metrics, topProducts, topCustomers }: AIInsightsPro
                   </div>
                   <Title>AI Business Insights</Title>
                 </div>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Text-to-Speech Button */}
+                  {insights.length > 0 && !loading && (
+                    <button
+                      onClick={handleTextToSpeech}
+                      className={`p-2 rounded-lg transition-colors ${
+                        isPlaying 
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      title={isPlaying ? 'Stop reading' : 'Listen to insights'}
+                    >
+                      {isPlaying ? (
+                        <VolumeX className="h-5 w-5" />
+                      ) : (
+                        <Volume2 className="h-5 w-5" />
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
               {loading ? (

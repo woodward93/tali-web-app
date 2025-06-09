@@ -751,31 +751,42 @@ export function Documents() {
                     <button
                       key={transaction.id}
                       onClick={() => handleSelectTransaction(transaction)}
-                      className="w-full text-left bg-gray-50 hover:bg-gray-100 rounded-lg p-4"
+                      className="w-full text-left bg-white hover:bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-all duration-200"
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="text-sm text-gray-500">
+                      <div className="space-y-3">
+                        {/* Header with date and amount */}
+                        <div className="flex justify-between items-start w-full">
+                          <div className="text-sm text-gray-500 font-medium">
                             {format(new Date(transaction.date), 'MMM d, yyyy')}
                           </div>
-                          <div className="font-medium">{transaction.contact?.name || 'N/A'}</div>
-                          <div className="text-sm text-gray-600">
-                            {transaction.items.map(item => item.name).join(', ')}
+                          <div className="text-right flex-shrink-0 ml-4">
+                            <div className="text-lg font-bold text-gray-900">
+                              {formatCurrency(transaction.total)} {businessProfile.preferred_currency}
+                            </div>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              transaction.payment_status === 'paid'
+                                ? 'bg-green-100 text-green-800'
+                                : transaction.payment_status === 'partially_paid'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {transaction.payment_status.replace('_', ' ')}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-medium">
-                            {formatCurrency(transaction.total)} {businessProfile.preferred_currency}
+                        
+                        {/* Customer name */}
+                        <div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {transaction.contact?.name || 'N/A'}
                           </div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            transaction.payment_status === 'paid'
-                              ? 'bg-green-100 text-green-800'
-                              : transaction.payment_status === 'partially_paid'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {transaction.payment_status.replace('_', ' ')}
-                          </span>
+                        </div>
+                        
+                        {/* Items */}
+                        <div>
+                          <div className="text-sm text-gray-600 line-clamp-2">
+                            {transaction.items.map(item => item.name).join(', ')}
+                          </div>
                         </div>
                       </div>
                     </button>

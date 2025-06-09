@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Package, FileText, BarChart2, Settings, LogOut, Menu, AlertCircle, X, Calculator, Landmark } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Receipt,
+  Package,
+  FileText,
+  BarChart2,
+  Settings,
+  LogOut,
+  Menu,
+  AlertCircle,
+  X,
+  Calculator,
+  Landmark,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, loadBusinessProfile } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -16,6 +30,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Inventory', href: '/inventory', icon: Package },
+  { name: 'Customers & Suppliers', href: '/contacts', icon: Users },
   { name: 'Receipts & Invoices', href: '/documents', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart2 },
   { name: 'Settings', href: '/settings', icon: Settings },
@@ -42,7 +57,7 @@ export function Layout() {
       setError(null);
 
       const businessProfile = await loadBusinessProfile();
-      
+
       if (!businessProfile) {
         if (location.pathname !== '/settings') {
           navigate('/settings');
@@ -75,10 +90,10 @@ export function Layout() {
       return (
         <div className="px-4 py-5 border-b">
           <div className="animate-pulse flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-gray-200"></div>
+            <div className="h-12 w-12 rounded-full bg-gray-200" />
             <div className="flex-1">
-              <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 w-32 bg-gray-200 rounded"></div>
+              <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
+              <div className="h-3 w-32 bg-gray-200 rounded" />
             </div>
           </div>
         </div>
@@ -123,7 +138,9 @@ export function Layout() {
               {business?.name || 'My Business'}
             </h2>
             {business?.address && (
-              <p className="text-xs text-gray-500 truncate">{business.address}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {business.address}
+              </p>
             )}
           </div>
         </div>
@@ -136,9 +153,10 @@ export function Layout() {
     { name: 'Transactions', href: '/transactions', icon: Receipt },
     { name: 'Bank Records', href: '/bank-records', icon: Landmark },
     { name: 'Inventory', href: '/inventory', icon: Package },
+    { name: 'Customers & Suppliers', href: '/contacts', icon: Users },
     { name: 'Receipts & Invoices', href: '/documents', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart2 },
-    { name: 'Settings', href: '/settings', icon: Settings }
+    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   return (
@@ -146,21 +164,23 @@ export function Layout() {
       {/* Mobile sidebar */}
       <div className="lg:hidden">
         {sidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-gray-900/80 z-40"
             onClick={() => setSidebarOpen(false)}
           />
         )}
-        
-        <div className={`fixed inset-y-0 left-0 z-50 w-full max-w-xs bg-white transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+
+        <div
+          className={`fixed inset-y-0 left-0 z-50 w-full max-w-xs bg-white transform transition-transform duration-300 ease-in-out ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
           <div className="flex h-20 items-center justify-between px-6 border-b">
             <div className="flex items-center gap-3 text-primary-600">
               <Calculator className="h-8 w-8" />
               <span className="text-2xl font-semibold">tali</span>
             </div>
-            <button 
+            <button
               onClick={() => setSidebarOpen(false)}
               className="p-2 -mr-2 text-gray-500 hover:text-gray-600"
             >
