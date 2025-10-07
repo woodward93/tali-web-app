@@ -116,7 +116,12 @@ function DocumentPreview({ transaction, business, onClose, onSave, hideCloseButt
       {/* Customer Info */}
       <div className="mb-8">
         <h3 className="text-gray-700 font-medium mb-2">Customer:</h3>
-        <p className="text-gray-900">{transaction.contact?.name}</p>
+        <div className="text-gray-900">
+          <p>{transaction.contact?.name}</p>
+          {transaction.contact?.phone && transaction.contact.phone.trim() && (
+            <p className="text-sm text-gray-600 mt-1">{transaction.contact.phone}</p>
+          )}
+        </div>
       </div>
 
       {/* Items */}
@@ -305,7 +310,7 @@ export function Documents() {
           *,
           transaction:transactions(
             *,
-            contact:contacts(name)
+            contact:contacts(name, phone)
           )
         `, { count: 'exact' })
         .eq('business_id', businessProfile.id);

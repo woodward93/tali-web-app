@@ -31,9 +31,10 @@ interface InventoryFormProps {
   onSuccess: (item: any) => void;
   editItem?: InventoryItem;
   initialData?: Partial<InventoryItem>;
+  requireDescription?: boolean;
 }
 
-export function InventoryForm({ onClose, onSuccess, editItem, initialData }: InventoryFormProps) {
+export function InventoryForm({ onClose, onSuccess, editItem, initialData, requireDescription = false }: InventoryFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -291,6 +292,7 @@ export function InventoryForm({ onClose, onSuccess, editItem, initialData }: Inv
         <div>
           <label className="block text-sm font-medium text-gray-700">Description (Optional)</label>
           <textarea
+            required={requireDescription}
             value={formData.description}
             onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={3}
@@ -345,7 +347,7 @@ export function InventoryForm({ onClose, onSuccess, editItem, initialData }: Inv
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 roundedS-md hover:bg-gray-50"
         >
           Cancel
         </button>

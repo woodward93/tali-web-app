@@ -14,7 +14,6 @@ export default defineConfig({
         '/src/pages/shop/*',
         '/src/components/shop/*',
         '/src/hooks/useShop.ts',
-        '/src/lib/shop.ts',
         '/src/types/shop.ts'
       ]
     }

@@ -90,10 +90,6 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      // First clear any stored session data
-      localStorage.removeItem('sb-' + import.meta.env.VITE_SUPABASE_URL.split('//')[1] + '-auth-token');
-      sessionStorage.removeItem('sb-' + import.meta.env.VITE_SUPABASE_URL.split('//')[1] + '-auth-token');
-      
       try {
         // Attempt to sign out from Supabase
         await supabase.auth.signOut();

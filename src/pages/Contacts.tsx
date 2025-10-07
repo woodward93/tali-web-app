@@ -243,8 +243,8 @@ export function Contacts() {
     if (!confirm('Are you sure you want to delete this contact? This action cannot be undone.')) return;
 
     try {
-      // First check if the contact has any transactions
-      const { data: transactions, error: checkError } = await supabase
+      // First check if the contact is linked to any transactions
+      const { data: linkedTransactions, error: checkError } = await supabase
         .from('transactions')
         .select('id')
         .eq('contact_id', contactId)
@@ -252,8 +252,8 @@ export function Contacts() {
 
       if (checkError) throw checkError;
 
-      if (transactions && transactions.length > 0) {
-        toast.error('Cannot delete contact because it is linked to one or more transactions. Please remove all transactions for this contact first.');
+      if (linkedTransactions && linkedTransactions.length > 0) {
+        toast.error('Cannot delete this contact because they are linked to existing transactions. Please remove or reassign the transactions first.');
         return;
       }
 
@@ -268,9 +268,8 @@ export function Contacts() {
       loadContacts();
     } catch (err) {
       console.error('Error deleting contact:', err);
-      // Check if it's a foreign key constraint error
       if (err instanceof Error && err.message.includes('foreign key')) {
-        toast.error('Cannot delete contact because it is linked to transactions. Please remove all transactions for this contact first.');
+        toast.error('Cannot delete this contact because they are linked to existing transactions. Please remove or reassign the transactions first.');
       } else {
         toast.error('Failed to delete contact');
       }

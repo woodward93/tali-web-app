@@ -38,7 +38,7 @@ export function useShop() {
         `)
         .eq('domain', shopDomain)
         .eq('active', true)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setShop(data);

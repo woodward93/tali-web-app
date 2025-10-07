@@ -8,10 +8,19 @@ import { Inventory } from './pages/Inventory';
 import { Contacts } from './pages/Contacts';
 import { Documents } from './pages/Documents';
 import { Analytics } from './pages/Analytics';
+import { OnlineShop } from './pages/OnlineShop';
 import { Settings } from './pages/Settings';
 import { Auth } from './pages/Auth';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { ShopLayout } from './pages/shop/ShopLayout';
+import { ShopHome } from './pages/shop/ShopHome';
+import { ShopProducts } from './pages/shop/ShopProducts';
+import { ShopProduct } from './pages/shop/ShopProduct';
+import { ShopCart } from './pages/shop/ShopCart';
+import { ShopCheckout } from './pages/shop/ShopCheckout';
+import { ShopShipping } from './pages/shop/ShopShipping';
+import { ShopPaymentSuccess } from './pages/shop/ShopPaymentSuccess';
 import { useAuth } from './hooks/useAuth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -38,6 +47,17 @@ function App() {
         <Route path="/auth/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
 
+        {/* Public shop routes */}
+        <Route path="/shop/:domain" element={<ShopLayout />}>
+          <Route index element={<ShopHome />} />
+          <Route path="products" element={<ShopProducts />} />
+          <Route path="products/:productId" element={<ShopProduct />} />
+          <Route path="cart" element={<ShopCart />} />
+          <Route path="checkout" element={<ShopCheckout />} />
+          <Route path="shipping" element={<ShopShipping />} />
+          <Route path="payment-success" element={<ShopPaymentSuccess />} />
+        </Route>
+
         {/* Protected application routes */}
         <Route
           path="/"
@@ -51,6 +71,7 @@ function App() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="bank-records" element={<BankPaymentRecords />} />
           <Route path="inventory" element={<Inventory />} />
+          <Route path="online-shop" element={<OnlineShop />} />
           <Route path="contacts" element={<Contacts />} />
           <Route path="documents" element={<Documents />} />
           <Route path="analytics" element={<Analytics />} />

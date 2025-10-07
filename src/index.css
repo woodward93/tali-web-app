@@ -9,10 +9,6 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
   
-  h1 {
-    @apply text-2xl font-bold text-gray-900;
-  }
-
   input[type="text"],
   input[type="email"],
   input[type="password"],

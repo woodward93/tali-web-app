@@ -163,7 +163,7 @@ export function Transactions() {
       }
 
       if (search) {
-        query = query.or(`contact.name.ilike.%${search}%`);
+        query = query.filter('contact.name', 'ilike', `%${search}%`);
       }
 
       if (sortBy) {

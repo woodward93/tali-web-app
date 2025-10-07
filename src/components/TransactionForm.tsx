@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { formatCurrency } from '../lib/format';
@@ -18,7 +18,7 @@ import type {
 interface TransactionFormProps {
   type: TransactionType;
   onClose: () => void;
-  onSuccess: (transactionId: string) => void;
+  onSuccess: () => void;
   editTransaction?: Transaction;
   initialData?: {
     date?: string;
@@ -27,6 +27,7 @@ interface TransactionFormProps {
     payment_method?: PaymentMethod;
     payment_status?: PaymentStatus;
     amount_paid?: number;
+    skipItemSelection?: boolean;
   };
 }
 
@@ -57,22 +58,29 @@ const PAYMENT_STATUSES: { value: PaymentStatus; label: string }[] = [
 
 export function TransactionForm({ type, onClose, onSuccess, editTransaction, initialData }: TransactionFormProps) {
   const { user } = useAuth();
-  const [step, setStep] = useState<'select_items' | 'transaction_details'>(initialData?.items?.length ? 'transaction_details' : 'select_items');
+  const [step, setStep] = useState<'select_items' | 'transaction_details'>(
+    initialData?.skipItemSelection ? 'transaction_details' : 'select_items'
+  );
   const [loading, setLoading] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<TransactionItem[]>(initialData?.items || []);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string>('');
-  const [newContact, setNewContact] = useState({ name: initialData?.contact_name || '', phone: '' });
-  const [showNewContactForm, setShowNewContactForm] = useState(!!initialData?.contact_name);
+  const [newContact, setNewContact] = useState({ 
+    name: initialData?.contact_name || '', 
+    phone: '' 
+  });
+  const [showNewContactForm, setShowNewContactForm] = useState(false);
   const [showNewItemForm, setShowNewItemForm] = useState(false);
   const [discount, setDiscount] = useState<string>('0');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initialData?.payment_method || 'cash');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialData?.payment_status || 'paid');
   const [amountPaid, setAmountPaid] = useState<string>(initialData?.amount_paid?.toString() || '0');
   const [stockError, setStockError] = useState<StockError | null>(null);
-  const [transactionDate, setTransactionDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+  const [transactionDate, setTransactionDate] = useState(
+    initialData?.date || new Date().toISOString().split('T')[0]
+  );
 
   useEffect(() => {
     if (user) {
@@ -81,6 +89,11 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction, ini
   }, [user]);
 
   useEffect(() => {
+    // Set up new contact form if we have initial contact name
+    if (initialData?.contact_name && !editTransaction) {
+      setShowNewContactForm(true);
+    }
+    
     if (editTransaction) {
       setSelectedItems(editTransaction.items);
       setDiscount(editTransaction.discount.toString());
@@ -90,7 +103,7 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction, ini
       setAmountPaid(editTransaction.amount_paid.toString());
       setTransactionDate(new Date(editTransaction.date).toISOString().split('T')[0]);
     }
-  }, [editTransaction]);
+  }, [editTransaction, initialData]);
 
   useEffect(() => {
     if (paymentStatus === 'paid') {
@@ -225,24 +238,7 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction, ini
 
   const handleQuantityChange = (itemId: string, quantityStr: string) => {
     const quantity = parseInt(quantityStr, 10);
-    
-    // Allow empty string for clearing the field
-    if (quantityStr === '') {
-      setSelectedItems(selectedItems.map(item => {
-        if (item.id === itemId) {
-          return {
-            ...item,
-            quantity_selected: 0,
-            subtotal: 0
-          };
-        }
-        return item;
-      }));
-      return;
-    }
-
-    // Validate quantity is a positive number
-    if (isNaN(quantity) || quantity < 0) return;
+    if (isNaN(quantity) || quantity < 1) return;
 
     const item = inventoryItems.find(i => i.id === itemId);
     if (!item) return;
@@ -368,29 +364,21 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction, ini
         date: transactionDate,
       };
 
-      let transactionId: string;
+      let error;
       if (editTransaction) {
-        const { data, error } = await supabase
+        ({ error } = await supabase
           .from('transactions')
           .update(transactionData)
-          .eq('id', editTransaction.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        transactionId = data.id;
+          .eq('id', editTransaction.id));
       } else {
-        const { data, error } = await supabase
+        ({ error } = await supabase
           .from('transactions')
-          .insert(transactionData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        transactionId = data.id;
+          .insert(transactionData));
       }
 
-      // Update inventory quantities
+      if (error) throw error;
+
+      // Update inventory quantities only for products
       for (const item of selectedItems) {
         const inventoryItem = inventoryItems.find(i => i.id === item.id);
         if (inventoryItem?.type === 'product') {
@@ -408,7 +396,7 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction, ini
       }
 
       toast.success(`${type === 'sale' ? 'Sale' : 'Expense'} ${editTransaction ? 'updated' : 'recorded'} successfully`);
-      onSuccess(transactionId);
+      onSuccess();
     } catch (err) {
       console.error('Error saving transaction:', err);
       toast.error(`Failed to ${editTransaction ? 'update' : 'save'} transaction`);
@@ -543,8 +531,8 @@ export function TransactionForm({ type, onClose, onSuccess, editTransaction, ini
                   <span className="flex-1">{item.name}</span>
                   <input
                     type="number"
-                    min="0"
-                    value={item.quantity_selected || ''}
+                    min="1"
+                    value={item.quantity_selected}
                     onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                     className="w-24"
                   />

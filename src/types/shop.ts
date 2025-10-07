@@ -13,6 +13,7 @@ export interface Shop {
 export interface ShopProduct {
   id: string;
   shop_id: string;
+  business_id: string;
   inventory_item_id: string | null;
   name: string;
   slug: string;
@@ -27,6 +28,12 @@ export interface ShopProduct {
   featured: boolean;
   created_at: string;
   updated_at: string;
+  inventory_item?: {
+    quantity: number;
+    category?: {
+      name: string;
+    };
+  };
 }
 
 export interface ShopOrder {

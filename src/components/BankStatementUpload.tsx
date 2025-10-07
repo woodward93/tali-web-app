@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Upload, Loader2, Download } from 'lucide-react';
+import { Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BankStatementUploadProps {
   businessId: string;
   onSuccess: () => void;
   className?: string;
+  showDownloadButton?: boolean;
 }
 
 export function BankStatementUpload({ businessId, onSuccess, className }: BankStatementUploadProps) {
@@ -22,9 +23,19 @@ export function BankStatementUpload({ businessId, onSuccess, className }: BankSt
       return;
     }
 
-    // Validate file type
-    if (file.type !== 'text/csv') {
-      toast.error('Please upload a CSV file');
+    // Get file extension
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    // Validate file type - be more permissive with Excel files
+    const isCSV = file.type === 'text/csv' || fileExtension === '.csv';
+    const isPDF = file.type === 'application/pdf' || fileExtension === '.pdf';
+    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                   file.type === 'application/vnd.ms-excel' ||
+                   fileExtension === '.xlsx' || 
+                   fileExtension === '.xls';
+    
+    if (!isCSV && !isPDF && !isExcel) {
+      toast.error('Please upload a CSV, Excel (.xlsx/.xls), or PDF file');
       e.target.value = '';
       return;
     }
@@ -63,53 +74,23 @@ export function BankStatementUpload({ businessId, onSuccess, className }: BankSt
     }
   };
 
-  const downloadTemplate = () => {
-    // Create CSV content with the specified headers
-    const csvContent = [
-      'Date/Time,Money In,Money Out,To / From,Description',
-      '2025-05-24 09:00:00,5000.00,,Employer Name,Salary Payment',
-      '2025-05-23 14:30:00,,150.25,Supplier Name,Office Supplies Purchase'
-    ].join('\n');
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'bank_statement_template.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
-      <button
-        onClick={downloadTemplate}
-        className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-      >
-        <Download className="h-4 w-4 mr-2" />
-        Download Template
-      </button>
-
-      <label className={`cursor-pointer ${className || 'w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'}`}>
-        <div className="flex items-center justify-center w-full">
-          {loading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4 mr-2" />
-          )}
-          <span>{loading ? 'Processing...' : 'Upload Statement'}</span>
-        </div>
-        <input
-          type="file"
-          accept=".csv"
-          onChange={handleFileUpload}
-          disabled={loading}
-          className="hidden"
-        />
-      </label>
-    </div>
+    <label className={`cursor-pointer ${className || 'w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'}`}>
+      <div className="flex items-center justify-center w-full">
+        {loading ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Upload className="h-4 w-4 mr-2" />
+        )}
+        <span>{loading ? 'Processing...' : 'Upload Statement'}</span>
+      </div>
+      <input
+        type="file"
+        accept=".csv,.xlsx,.xls,.pdf"
+        onChange={handleFileUpload}
+        disabled={loading}
+        className="hidden"
+      />
+    </label>
   );
 }

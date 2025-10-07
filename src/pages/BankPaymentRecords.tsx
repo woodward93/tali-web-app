@@ -157,28 +157,25 @@ export function BankPaymentRecords() {
 
   const handleCreateTransaction = (record: BankPaymentRecord) => {
     setSelectedRecord(record);
-    if (record.description) {
-      setShowInventoryForm(true);
-    } else {
-      setShowTransactionForm(true);
-    }
+    // Always create an inventory item first, then go directly to transaction form
+    setShowInventoryForm(true);
   };
 
   const handleInventorySuccess = (item: any) => {
     setCreatedItem(item);
     setShowInventoryForm(false);
+    // Directly show transaction form with pre-populated data
     setShowTransactionForm(true);
   };
 
-  const handleTransactionSuccess = async (transactionId: string) => {
+  const handleTransactionSuccess = async () => {
     if (!selectedRecord) return;
 
     try {
-      // Update the bank payment record
+      // Mark the bank payment record as processed
       const { error } = await supabase
         .from('bank_payment_records')
         .update({
-          transaction_id: transactionId,
           processed: true
         })
         .eq('id', selectedRecord.id);
@@ -509,11 +506,16 @@ export function BankPaymentRecords() {
               onSuccess={handleTransactionSuccess}
               initialData={{
                 date: format(new Date(selectedRecord.date), 'yyyy-MM-dd'),
-                items: createdItem ? [{ ...createdItem, quantity_selected: 1 }] : [],
+                items: createdItem ? [{
+                  ...createdItem,
+                  quantity_selected: 1,
+                  subtotal: createdItem.selling_price
+                }] : [],
                 contact_name: selectedRecord.beneficiary_name,
                 payment_method: 'bank_transfer',
                 payment_status: 'paid',
-                amount_paid: selectedRecord.amount
+                amount_paid: selectedRecord.amount,
+                skipItemSelection: true
               }}
             />
           </div>
