@@ -7,15 +7,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  build: {
-    rollupOptions: {
-      // Exclude shop-related files from the build
-      external: [
-        '/src/pages/shop/*',
-        '/src/components/shop/*',
-        '/src/hooks/useShop.ts',
-        '/src/types/shop.ts'
-      ]
-    }
-  }
 });
