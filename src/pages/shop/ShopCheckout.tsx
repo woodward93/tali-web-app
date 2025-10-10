@@ -257,7 +257,7 @@ export function ShopCheckout() {
                         {item.name}
                       </h4>
                       <p className="text-sm text-gray-500">
-                        {formatCurrency(item.price)} {shop.business.preferred_currency}
+                        {formatCurrency(item.price)} {shop.business?.preferred_currency || 'NGN'}
                       </p>
                     </div>
 
@@ -286,7 +286,7 @@ export function ShopCheckout() {
 
                     {/* Item Total */}
                     <div className="text-sm font-medium text-gray-900">
-                      {formatCurrency(item.price * item.quantity)} {shop.business.preferred_currency}
+                      {formatCurrency(item.price * item.quantity)} {shop.business?.preferred_currency || 'NGN'}
                     </div>
 
                     {/* Remove Button */}
@@ -306,7 +306,7 @@ export function ShopCheckout() {
                 <div className="flex items-center justify-between">
                   <dt className="text-sm text-gray-600">Subtotal</dt>
                   <dd className="text-sm font-medium text-gray-900">
-                    {formatCurrency(subtotal)} {shop.business.preferred_currency}
+                    {formatCurrency(subtotal)} {shop.business?.preferred_currency || 'NGN'}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
@@ -318,7 +318,7 @@ export function ShopCheckout() {
                 <div className="flex items-center justify-between border-t border-gray-200 pt-2">
                   <dt className="text-base font-medium text-gray-900">Total</dt>
                   <dd className="text-base font-medium text-gray-900">
-                    {formatCurrency(subtotal)} {shop.business.preferred_currency}
+                    {formatCurrency(subtotal)} {shop.business?.preferred_currency || 'NGN'}
                   </dd>
                 </div>
               </div>

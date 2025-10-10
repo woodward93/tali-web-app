@@ -239,11 +239,11 @@ export function ShopProduct() {
               <h2 className="sr-only">Product information</h2>
               <div className="flex items-center gap-4">
                 <p className="text-3xl tracking-tight text-gray-900">
-                  {formatCurrency(product.price)} {shop.business.preferred_currency}
+                  {formatCurrency(product.price)} {shop.business?.preferred_currency || 'NGN'}
                 </p>
                 {product.compare_at_price && product.compare_at_price > product.price && (
                   <p className="text-xl text-gray-500 line-through">
-                    {formatCurrency(product.compare_at_price)} {shop.business.preferred_currency}
+                    {formatCurrency(product.compare_at_price)} {shop.business?.preferred_currency || 'NGN'}
                   </p>
                 )}
               </div>
@@ -348,7 +348,7 @@ export function ShopProduct() {
                       </h3>
                     </div>
                     <p className="text-sm font-medium text-gray-900">
-                      {formatCurrency(relatedProduct.price)} {shop.business.preferred_currency}
+                      {formatCurrency(relatedProduct.price)} {shop.business?.preferred_currency || 'NGN'}
                     </p>
                   </div>
                 </div>

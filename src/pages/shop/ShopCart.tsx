@@ -77,7 +77,7 @@ export function ShopCart() {
                           </h3>
                         </div>
                         <p className="mt-1 text-sm font-medium text-gray-900">
-                          {formatCurrency(item.price)} {shop.business.preferred_currency}
+                          {formatCurrency(item.price)} {shop.business?.preferred_currency || 'NGN'}
                         </p>
                       </div>
 
@@ -116,7 +116,7 @@ export function ShopCart() {
                     </div>
 
                     <p className="mt-4 flex space-x-2 text-sm text-gray-700">
-                      <span>Subtotal: {formatCurrency(item.price * item.quantity)} {shop.business.preferred_currency}</span>
+                      <span>Subtotal: {formatCurrency(item.price * item.quantity)} {shop.business?.preferred_currency || 'NGN'}</span>
                     </p>
                   </div>
                 </li>
@@ -140,7 +140,7 @@ export function ShopCart() {
               <div className="flex items-center justify-between">
                 <dt className="text-sm text-gray-600">Subtotal</dt>
                 <dd className="text-sm font-medium text-gray-900">
-                  {formatCurrency(getCartTotal())} {shop.business.preferred_currency}
+                  {formatCurrency(getCartTotal())} {shop.business?.preferred_currency || 'NGN'}
                 </dd>
               </div>
               <div className="flex items-center justify-between border-t border-gray-200 pt-4">
@@ -154,7 +154,7 @@ export function ShopCart() {
               <div className="flex items-center justify-between border-t border-gray-200 pt-4">
                 <dt className="text-base font-medium text-gray-900">Order total</dt>
                 <dd className="text-base font-medium text-gray-900">
-                  {formatCurrency(getCartTotal())} {shop.business.preferred_currency}
+                  {formatCurrency(getCartTotal())} {shop.business?.preferred_currency || 'NGN'}
                 </dd>
               </div>
             </dl>

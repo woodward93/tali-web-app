@@ -299,7 +299,7 @@ export function ShopShipping() {
                         </div>
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        {method.cost === 0 ? 'Free' : `${formatCurrency(method.cost)} ${shop.business.preferred_currency}`}
+                        {method.cost === 0 ? 'Free' : `${formatCurrency(method.cost)} ${shop.business?.preferred_currency || 'NGN'}`}
                       </div>
                     </div>
                   </div>
@@ -355,11 +355,11 @@ export function ShopShipping() {
                         {item.name}
                       </h4>
                       <p className="text-sm text-gray-500">
-                        Qty: {item.quantity} × {formatCurrency(item.price)} {shop.business.preferred_currency}
+                        Qty: {item.quantity} × {formatCurrency(item.price)} {shop.business?.preferred_currency || 'NGN'}
                       </p>
                     </div>
                     <div className="text-sm font-medium text-gray-900">
-                      {formatCurrency(item.price * item.quantity)} {shop.business.preferred_currency}
+                      {formatCurrency(item.price * item.quantity)} {shop.business?.preferred_currency || 'NGN'}
                     </div>
                   </div>
                 ))}
@@ -370,14 +370,14 @@ export function ShopShipping() {
                 <div className="flex items-center justify-between">
                   <dt className="text-sm text-gray-600">Subtotal</dt>
                   <dd className="text-sm font-medium text-gray-900">
-                    {formatCurrency(subtotal)} {shop.business.preferred_currency}
+                    {formatCurrency(subtotal)} {shop.business?.preferred_currency || 'NGN'}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
                   <dt className="text-sm text-gray-600">Shipping</dt>
                   <dd className="text-sm font-medium text-gray-900">
                     {selectedMethod ? (
-                      selectedMethod.cost === 0 ? 'Free' : `${formatCurrency(shippingCost)} ${shop.business.preferred_currency}`
+                      selectedMethod.cost === 0 ? 'Free' : `${formatCurrency(shippingCost)} ${shop.business?.preferred_currency || 'NGN'}`
                     ) : (
                       'Select method'
                     )}
@@ -386,7 +386,7 @@ export function ShopShipping() {
                 <div className="flex items-center justify-between border-t border-gray-200 pt-2">
                   <dt className="text-base font-medium text-gray-900">Total</dt>
                   <dd className="text-base font-medium text-gray-900">
-                    {formatCurrency(total)} {shop.business.preferred_currency}
+                    {formatCurrency(total)} {shop.business?.preferred_currency || 'NGN'}
                   </dd>
                 </div>
               </div>

@@ -7,7 +7,7 @@ interface ShopData extends Shop {
   business: {
     logo_url: string | null;
     preferred_currency: string;
-  };
+  } | null;
 }
 
 export function useShop() {

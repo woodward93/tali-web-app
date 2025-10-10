@@ -110,11 +110,11 @@ export function ShopHome() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">
-                      {formatCurrency(product.price)} {shop.business.preferred_currency}
+                      {formatCurrency(product.price)} {shop.business?.preferred_currency || 'NGN'}
                     </p>
                     {product.compare_at_price && product.compare_at_price > product.price && (
                       <p className="text-sm text-gray-500 line-through">
-                        {formatCurrency(product.compare_at_price)} {shop.business.preferred_currency}
+                        {formatCurrency(product.compare_at_price)} {shop.business?.preferred_currency || 'NGN'}
                       </p>
                     )}
                   </div>
