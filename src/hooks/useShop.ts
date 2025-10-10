@@ -41,15 +41,6 @@ export function useShop() {
         .maybeSingle();
 
       if (error) throw error;
-
-      console.log('Shop data loaded:', {
-        shopId: data?.id,
-        shopName: data?.name,
-        businessId: data?.business_id,
-        businessData: data?.business,
-        fullData: data
-      });
-
       setShop(data);
     } catch (err) {
       console.error('Error loading shop:', err);
