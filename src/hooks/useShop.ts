@@ -31,7 +31,7 @@ export function useShop() {
         .from('shops')
         .select(`
           *,
-          business:businesses(
+          business:public_business_info(
             logo_url,
             preferred_currency
           )
