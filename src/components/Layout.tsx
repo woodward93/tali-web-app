@@ -245,7 +245,7 @@ export function Layout() {
   ];
 
   // Only show Online Shop for Nigerian businesses
-  const isNigeria = business?.country === 'Nigeria';
+  const isNigeria = business?.country === 'NG';
 
   const navigation = isNigeria
     ? [
