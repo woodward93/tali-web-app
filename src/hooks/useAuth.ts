@@ -90,25 +90,42 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      try {
-        // Attempt to sign out from Supabase
-        await supabase.auth.signOut();
-      } catch (signOutError: any) {
-        // Ignore session_not_found errors as we're logging out anyway
-        if (signOutError?.message !== 'session_not_found') {
-          console.error('Sign out error:', signOutError);
+      // Attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+
+      // Check for session_not_found error (can be in code or message)
+      if (error) {
+        const isSessionNotFound =
+          error.message?.includes('session_not_found') ||
+          error.message?.includes('Session from session_id claim in JWT does not exist') ||
+          error.status === 404;
+
+        // Only log errors that aren't about missing sessions
+        if (!isSessionNotFound) {
+          console.error('Sign out error:', error);
         }
       }
-      
+    } catch (err: any) {
+      // Catch any network or unexpected errors
+      console.error('Error during sign out:', err);
+    } finally {
+      // Always clear local state and storage, regardless of API result
+      try {
+        // Clear Supabase auth keys from localStorage
+        const storageKeys = Object.keys(localStorage);
+        storageKeys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (storageError) {
+        console.error('Error clearing storage:', storageError);
+      }
+
       // Clear user state
       setUser(null);
-      
+
       // Navigate to auth page
-      window.location.href = '/auth';
-    } catch (err) {
-      console.error('Error during sign out cleanup:', err);
-      // Even if there's an error, clear the user state and redirect
-      setUser(null);
       window.location.href = '/auth';
     }
   };

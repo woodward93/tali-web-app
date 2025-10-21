@@ -57,7 +57,7 @@ export function Layout() {
   const [submittingContact, setSubmittingContact] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -91,8 +91,7 @@ export function Layout() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
-      navigate('/auth');
+      await signOut();
     } catch (err) {
       console.error('Error signing out:', err);
       toast.error('Failed to sign out');
