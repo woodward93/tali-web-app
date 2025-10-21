@@ -30,11 +30,10 @@ interface BusinessProfile {
   address: string | null;
 }
 
-const navigation = [
+const baseNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Inventory', href: '/inventory', icon: Package },
-  { name: 'Online Shop', href: '/online-shop', icon: Store },
   { name: 'Customers & Suppliers', href: '/contacts', icon: Users },
   { name: 'Receipts & Invoices', href: '/documents', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart2 },
@@ -234,7 +233,7 @@ export function Layout() {
     );
   };
 
-  const desktopNavigation = [
+  const baseDesktopNavigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Transactions', href: '/transactions', icon: Receipt },
     { name: 'Bank Records', href: '/bank-records', icon: Landmark },
@@ -242,9 +241,27 @@ export function Layout() {
     { name: 'Customers & Suppliers', href: '/contacts', icon: Users },
     { name: 'Receipts & Invoices', href: '/documents', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart2 },
-    { name: 'Online Shop', href: '/online-shop', icon: Store },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
+
+  // Only show Online Shop for Nigerian businesses
+  const isNigeria = business?.country === 'Nigeria';
+
+  const navigation = isNigeria
+    ? [
+        ...baseNavigation.slice(0, 3),
+        { name: 'Online Shop', href: '/online-shop', icon: Store },
+        ...baseNavigation.slice(3),
+      ]
+    : baseNavigation;
+
+  const desktopNavigation = isNigeria
+    ? [
+        ...baseDesktopNavigation.slice(0, 6),
+        { name: 'Online Shop', href: '/online-shop', icon: Store },
+        ...baseDesktopNavigation.slice(6),
+      ]
+    : baseDesktopNavigation;
 
   return (
     <div className="min-h-screen bg-gray-50">
