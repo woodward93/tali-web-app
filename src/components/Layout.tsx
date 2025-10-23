@@ -146,7 +146,7 @@ export function Layout() {
     },
     {
       question: "How do I generate receipts and invoices?",
-      answer: "Go to the 'Receipts & Invoices' page, click 'New Receipt/Invoice', select a transaction, and the system will generate a professional document."
+      answer: "Go to the 'Receipts & Invoices' page, click 'New Receipt/Invoice', select a transaction, and the system will generate a professional receipt/invoice."
     },
     {
       question: "Can I export my transaction data?",
@@ -157,12 +157,16 @@ export function Layout() {
       answer: "Visit the Online Shop page to create your shop, add products, and configure shipping methods. Your shop will be accessible via a custom domain."
     },
     {
+      question: "Is there a fee on the Onine Shop?",
+      answer: "Yes. We charge a fee of 2.5% of the order value per transaction on shop."
+    },
+    {
       question: "What payment methods are supported?",
-      answer: "You can record payments via Cash, Card, Bank Transfer, and Mobile Money. For online shops, we support Paystack integration."
+      answer: "You can record payments via card, bank transfer, and bank. For online shops, we support Paystack integration."
     },
     {
       question: "How do I upload bank statements?",
-      answer: "Go to Bank Records page and upload your bank statement (CSV, Excel, or PDF). The system will automatically extract transaction data."
+      answer: "Go to Bank Records page and upload your bank statement (CSV, Excel). The system will automatically extract transaction data."
     },
     {
       question: "Can I track inventory levels?",
