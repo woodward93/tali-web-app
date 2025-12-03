@@ -24,6 +24,7 @@ import type { Transaction } from '../types';
 type DateRange = '1M' | '3M' | '6M' | 'YTD' | 'ALL';
 
 interface BusinessProfile {
+  id: string;
   preferred_currency: string;
 }
 
@@ -104,6 +105,7 @@ export function Dashboard() {
           *,
           contact:contacts(name)
         `)
+        .eq('business_id', businessProfile!.id)
         .order('date', { ascending: true });
 
       if (error) throw error;
@@ -120,6 +122,7 @@ export function Dashboard() {
       const { data: products, error: productsError } = await supabase
         .from('inventory_items')
         .select('id, name, quantity, sku', { count: 'exact' })
+        .eq('business_id', businessProfile!.id)
         .eq('type', 'product');
 
       if (productsError) throw productsError;
@@ -147,6 +150,7 @@ export function Dashboard() {
           total,
           amount_paid
         `)
+        .eq('business_id', businessProfile!.id)
         .eq('type', 'sale')
         .neq('payment_status', 'paid');
 
@@ -160,6 +164,7 @@ export function Dashboard() {
           total,
           amount_paid
         `)
+        .eq('business_id', businessProfile!.id)
         .eq('type', 'expense')
         .neq('payment_status', 'paid');
 
