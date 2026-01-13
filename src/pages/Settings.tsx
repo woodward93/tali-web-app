@@ -116,6 +116,13 @@ export function Settings() {
     setError('');
     setSuccess(false);
 
+    if (!userFormData.phone || userFormData.phone.trim() === '') {
+      setError('Phone number is required');
+      setLoading(false);
+      toast.error('Please enter a phone number');
+      return;
+    }
+
     try {
       const { error: profileError } = await supabase
         .from('user_profiles')
@@ -322,9 +329,10 @@ export function Settings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                <label className="block text-sm font-medium text-gray-700">Phone Number <span className="text-red-500">*</span></label>
                 <input
                   type="tel"
+                  required
                   value={userFormData.phone || ''}
                   onChange={e => setUserFormData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="Enter your phone number"
@@ -489,9 +497,10 @@ export function Settings() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <label className="block text-sm font-medium text-gray-700">Phone Number <span className="text-red-500">*</span></label>
                     <input
                       type="tel"
+                      required
                       value={userFormData.phone || ''}
                       onChange={e => setUserFormData(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder="Enter your phone number"
